@@ -1,565 +1,375 @@
-import { DragonStorageService, STRATEGIES } from "./services/storage.js";
-import { STRATEGY_LABELS, strategyByWorldIndex } from "./engine/generator.js";
-import { buildSession, masteryLabel, shouldShowPreventiveHelp, updateWorldUnlock } from "./engine/adaptive.js";
+window.DragonApp = window.DragonApp || {};
 
-const storage = new DragonStorageService();
+document.addEventListener('DOMContentLoaded', () => {
+    const Storage = window.DragonApp.Storage;
+    const Adaptive = window.DragonApp.Adaptive;
 
-const state = {
-  view: "inicio",
-  selectingStudent: !storage.getActiveStudentId(),
-  activeStudent: storage.getActiveStudent(),
-  session: null,
-  sessionIndex: 0,
-  sessionAnswers: [],
-  currentInput: "",
-  feedback: null,
-  waitingContinue: false,
-  sessionDoneMessage: ""
-};
+    const container = document.getElementById('app-container');
+    const studentBadge = document.getElementById('active-student-badge');
+    const navButtons = document.querySelectorAll('.nav-btn');
 
-const views = {
-  selector: document.getElementById("view-student-selector"),
-  inicio: document.getElementById("view-inicio"),
-  entrenamiento: document.getElementById("view-entrenamiento"),
-  progreso: document.getElementById("view-progreso"),
-  logros: document.getElementById("view-logros")
-};
+    let currentView = 'inicio';
+    let sessionState = null;
 
-const activeStudentInfo = document.getElementById("active-student-info");
-const changeStudentBtn = document.getElementById("change-student-btn");
-const teacherPanelBtn = document.getElementById("teacher-panel-btn");
-const navButtons = [...document.querySelectorAll(".nav-btn")];
+    function updateHeader() {
+        const student = Storage.getActiveStudent();
+        studentBadge.textContent = student ? `👤 ${student.nombre}` : 'Selecciona alumno';
+        navButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === currentView);
+        });
+    }
 
-const teacherPinModal = document.getElementById("teacher-pin-modal");
-const teacherPinForm = document.getElementById("teacher-pin-form");
-const teacherPinInput = document.getElementById("teacher-pin-input");
-const teacherPinError = document.getElementById("teacher-pin-error");
-const teacherPanelModal = document.getElementById("teacher-panel-modal");
-const teacherPanelContent = document.getElementById("teacher-panel-content");
+    function navigate(view) {
+        const student = Storage.getActiveStudent();
+        if (!student && view !== 'selector' && view !== 'profesor') {
+            renderStudentSelector();
+            return;
+        }
+        currentView = view;
+        updateHeader();
 
-function masteryMap(student) {
-  return STRATEGIES.reduce((acc, strategy) => {
-    const item = student.strategyStats[strategy];
-    const value = item.total === 0 ? 0 : Math.round((item.correct / item.total) * 100);
-    acc[strategy] = value;
-    return acc;
-  }, {});
-}
+        if (view === 'inicio') renderDashboard();
+        else if (view === 'entrenamiento') startOrResumeSession();
+        else if (view === 'progreso') renderProgress();
+        else if (view === 'logros') renderAchievements();
+        else if (view === 'profesor') renderTeacherPanel();
+    }
 
-function refreshActiveStudent() {
-  state.activeStudent = storage.getActiveStudent();
-}
+    function renderStudentSelector() {
+        currentView = 'selector';
+        updateHeader();
+        const db = Storage.getDatabase();
+        const students = Object.values(db.students);
 
-function setView(view) {
-  state.view = view;
-  render();
-}
+        container.innerHTML = `
+            <div class="card">
+                <h2>👋 ¡Bienvenido a 3ºB Hermandad del Dragón!</h2>
+                <p class="subtitle" style="margin-top:6px;">Toca tu nombre para entrar directamente a tu entrenamiento:</p>
+                <div class="student-grid">
+                    ${students.map(st => `
+                        <button class="student-card-btn" data-id="${st.id}">
+                            ${st.nombre}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
 
-function setSelectingStudent(value) {
-  state.selectingStudent = value;
-  render();
-}
+        container.querySelectorAll('.student-card-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Storage.setActiveStudentId(btn.dataset.id);
+                navigate('inicio');
+            });
+        });
+    }
 
-function renderHeader() {
-  const student = state.activeStudent;
-  activeStudentInfo.textContent = student ? `${student.name}` : "Sin alumno";
-  changeStudentBtn.disabled = !student;
-}
+    function renderDashboard() {
+        const student = Storage.getActiveStudent();
+        const worldObj = Storage.STRATEGIES.find(s => s.id === student.mundoActual) || Storage.STRATEGIES[0];
+        const worldMastery = student.dominio[student.mundoActual] || 0;
+        const lastResult = student.ultimaSesionCorrectas !== null
+            ? `${student.ultimaSesionCorrectas}/${student.ultimaSesionTotal} correctas`
+            : 'Sin sesiones aún';
 
-function renderNav() {
-  const canNavigate = !!state.activeStudent;
-  navButtons.forEach((btn) => {
-    const target = btn.dataset.view;
-    btn.disabled = !canNavigate;
-    btn.classList.toggle("active", !state.selectingStudent && state.view === target);
-  });
-}
+        container.innerHTML = `
+            <div class="card dashboard-hero">
+                <h2>Hola, ${student.nombre}</h2>
+                <div class="stat-row">
+                    <div class="stat-box">
+                        <div class="label">Mundo actual</div>
+                        <div class="value">${worldObj.id}. ${worldObj.name}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">Dominio del mundo</div>
+                        <div class="value">${worldMastery}%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">Última sesión</div>
+                        <div class="value">${lastResult}</div>
+                    </div>
+                </div>
+                <button id="btn-start-practice" class="btn-primary" style="width:100%; font-size:1.5rem; padding:20px;">
+                    Continuar ▶
+                </button>
+            </div>
+        `;
 
-function renderStudentSelector() {
-  const students = storage.getAllStudents();
-  views.selector.classList.toggle("active", state.selectingStudent);
+        document.getElementById('btn-start-practice').addEventListener('click', () => {
+            sessionState = null;
+            navigate('entrenamiento');
+        });
+    }
 
-  if (!state.selectingStudent) {
-    views.selector.innerHTML = "";
-    return;
-  }
+    function startOrResumeSession() {
+        const student = Storage.getActiveStudent();
+        if (!sessionState) {
+            sessionState = {
+                questions: Adaptive.buildSessionQuestions(student),
+                currentIndex: 0,
+                correctCount: 0,
+                history: [],
+                awaitingNext: false,
+                startTime: Date.now()
+            };
+        }
+        renderQuestion();
+    }
 
-  const buttons = students
-    .map((student) => `<button type="button" class="student-btn" data-student-id="${student.id}">${student.name}</button>`)
-    .join("");
+    function renderQuestion() {
+        const student = Storage.getActiveStudent();
+        const q = sessionState.questions[sessionState.currentIndex];
+        const strategyObj = Storage.STRATEGIES.find(s => s.id === q.strategyId);
+        const answeredCount = sessionState.history.length;
+        const accuracy = answeredCount > 0
+            ? Math.round((sessionState.correctCount / answeredCount) * 100)
+            : 100;
 
-  views.selector.innerHTML = `
-    <div class="card">
-      <h2>Elige tu perfil</h2>
-      <p>Selecciona tu alumno para continuar.</p>
-      <div class="student-grid">${buttons}</div>
-    </div>
-  `;
+        const showHint = Adaptive.shouldTriggerPreventiveHelp(sessionState.history, q.strategyId);
 
-  views.selector.querySelectorAll("[data-student-id]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const id = button.dataset.studentId;
-      storage.setActiveStudentId(id);
-      refreshActiveStudent();
-      state.view = "inicio";
-      setSelectingStudent(false);
+        container.innerHTML = `
+            <div class="practice-layout">
+                <div class="card">
+                    <div class="question-meta">
+                        <span>Mundo ${strategyObj.id} · ${strategyObj.name}</span>
+                        <span>Pregunta ${sessionState.currentIndex + 1} de 20</span>
+                    </div>
+
+                    ${showHint ? `
+                        <div class="hint-banner">
+                            💡 Pista: ${q.paso1}
+                        </div>
+                    ` : ''}
+
+                    <div class="math-prompt">${q.prompt}</div>
+
+                    <input type="number" id="answer-input" class="answer-input" placeholder="?" autocomplete="off" />
+
+                    <button id="btn-check" class="btn-primary" style="width:100%;">Comprobar</button>
+
+                    <div id="feedback-area"></div>
+
+                    <div style="margin-top:18px; text-align:right; color:var(--text-muted); font-weight:600;">
+                        Precisión sesión: ${accuracy}%
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="keypad">
+                        ${[7,8,9,4,5,6,1,2,3].map(n => `<button class="key-btn" data-key="${n}">${n}</button>`).join('')}
+                        <button class="key-btn" data-key="clear">C</button>
+                        <button class="key-btn" data-key="0">0</button>
+                        <button class="key-btn" data-key="enter" style="background:var(--primary); color:white;">⏎</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const input = document.getElementById('answer-input');
+        const checkBtn = document.getElementById('btn-check');
+        input.focus();
+
+        function submitAnswer() {
+            if (sessionState.awaitingNext) return;
+            const val = parseInt(input.value, 10);
+            if (isNaN(val)) return;
+
+            sessionState.awaitingNext = true;
+            const isCorrect = val === q.answer;
+            if (isCorrect) sessionState.correctCount++;
+
+            sessionState.history.push({ strategyId: q.strategyId, correct: isCorrect });
+            Adaptive.registerAnswer(student, q, isCorrect);
+            Storage.updateStudent(student);
+
+            const feedbackArea = document.getElementById('feedback-area');
+            checkBtn.style.display = 'none';
+            input.disabled = true;
+
+            if (isCorrect) {
+                feedbackArea.innerHTML = `<div class="feedback-box feedback-success">✅ Correcto</div>`;
+                setTimeout(nextQuestion, 700);
+            } else {
+                feedbackArea.innerHTML = `
+                    <div class="feedback-box feedback-error">
+                        <div style="font-size:1.3rem; font-weight:800; margin-bottom:10px;">❌ Vamos a verlo</div>
+                        <div class="step-box">${q.paso1}</div>
+                        <div class="step-box">${q.paso2}</div>
+                        <button id="btn-continue-err" class="btn-primary" style="margin-top:12px; width:100%;">Continuar</button>
+                    </div>
+                `;
+                document.getElementById('btn-continue-err').addEventListener('click', nextQuestion);
+                document.getElementById('btn-continue-err').focus();
+            }
+        }
+
+        function nextQuestion() {
+            sessionState.awaitingNext = false;
+            sessionState.currentIndex++;
+            if (sessionState.currentIndex >= 20) {
+                finishSession();
+            } else {
+                renderQuestion();
+            }
+        }
+
+        checkBtn.addEventListener('click', submitAnswer);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitAnswer();
+        });
+
+        container.querySelectorAll('.key-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (sessionState.awaitingNext) return;
+                const key = btn.dataset.key;
+                if (key === 'clear') input.value = '';
+                else if (key === 'enter') submitAnswer();
+                else input.value += key;
+                input.focus();
+            });
+        });
+    }
+
+    function finishSession() {
+        const student = Storage.getActiveStudent();
+        student.ultimaSesionCorrectas = sessionState.correctCount;
+        student.ultimaSesionTotal = 20;
+        Storage.updateStudent(student);
+
+        Storage.syncToCloud({
+            alumno: student.nombre,
+            mundoActual: student.mundoActual,
+            aciertos: sessionState.correctCount,
+            dominio: student.dominio,
+            fecha: new Date().toISOString()
+        });
+
+        const score = sessionState.correctCount;
+        sessionState = null;
+
+        container.innerHTML = `
+            <div class="card dashboard-hero">
+                <h2>🎉 ¡Sesión completada!</h2>
+                <div class="math-prompt" style="color:var(--primary);">${score} / 20</div>
+                <p style="font-size:1.2rem; margin-bottom:24px;">Has terminado tu entrenamiento de hoy.</p>
+                <button id="btn-back-home" class="btn-primary">Volver a Inicio</button>
+            </div>
+        `;
+
+        document.getElementById('btn-back-home').addEventListener('click', () => navigate('inicio'));
+    }
+
+    function renderProgress() {
+        const student = Storage.getActiveStudent();
+        container.innerHTML = `
+            <div class="card">
+                <h2 style="margin-bottom:20px;">Dominio por estrategia</h2>
+                ${Storage.STRATEGIES.map(s => {
+                    const pct = student.dominio[s.id] || 0;
+                    const label = Adaptive.getMasteryLabel(pct);
+                    return `
+                        <div class="strategy-row">
+                            <div class="strategy-header">
+                                <span>${s.id}.${s.name}</span>
+                                <span>${pct}\% ·${label}</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width:${pct}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    function renderTeacherPanel() {
+        const pin = prompt('Introduce el PIN de profesor (por defecto: 1234):');
+        if (pin !== '1234') {
+            navigate('inicio');
+            return;
+        }
+        currentView = 'profesor';
+        updateHeader();
+
+        const db = Storage.getDatabase();
+        const students = Object.values(db.students);
+
+        container.innerHTML = `
+            <div class="card" style="overflow-x:auto;">
+                <h2>👨‍🏫 Panel del Profesor · 3ºB Hermandad del Dragón</h2>
+                <p class="subtitle" style="margin-bottom:16px;">Haz clic en el nombre de un alumno para renombrarlo o en su Mundo para cambiarlo de nivel (1 a 8).</p>
+                <table class="teacher-table">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>Mundo</th>
+                            <th>Última</th>
+                            ${Storage.STRATEGIES.map(s => `<th>E${s.id}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(st => `
+                            <tr>
+                                <td>
+                                    <button class="btn-outline btn-rename" data-id="${st.id}" style="width:100%;">
+                                        ✏️ ${st.nombre}
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn-secondary btn-world" data-id="${st.id}" title="Cambiar mundo">
+                                        Mundo ${st.mundoActual} 🔄
+                                    </button>
+                                </td>
+                                <td>${st.ultimaSesionCorrectas !== null ? st.ultimaSesionCorrectas + '/20' : '-'}</td>
+                                ${Storage.STRATEGIES.map(s => `<td>${st.dominio[s.id] || 0}%</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.querySelectorAll('.btn-rename').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const current = db.students[id].nombre;
+                const nuevo = prompt('Nuevo nombre para el alumno:', current);
+                if (nuevo) {
+                    Storage.renameStudent(id, nuevo);
+                    renderTeacherPanel();
+                }
+            });
+        });
+
+        container.querySelectorAll('.btn-world').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const student = db.students[id];
+                const nuevoMundo = parseInt(prompt(`¿A qué mundo (1 a 8) quieres mover a ${student.nombre}?`, student.mundoActual), 10);
+                if (nuevoMundo >= 1 && nuevoMundo <= 8) {
+                    student.mundoActual = nuevoMundo;
+                    if (!student.dominio[nuevoMundo]) student.dominio[nuevoMundo] = 50;
+                    Storage.updateStudent(student);
+                    renderTeacherPanel();
+                }
+            });
+        });
+    }
+
+    // Eventos globales
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', () => navigate(btn.dataset.view));
     });
-  });
-}
 
-function renderInicio() {
-  views.inicio.classList.toggle("active", !state.selectingStudent && state.view === "inicio");
-  if (!state.activeStudent || state.selectingStudent) {
-    views.inicio.innerHTML = "";
-    return;
-  }
-
-  const student = state.activeStudent;
-  const strategy = strategyByWorldIndex(student.mundoActual);
-  const mastery = masteryMap(student)[strategy];
-
-  views.inicio.innerHTML = `
-    <div class="card">
-      <h2>Inicio</h2>
-      <p><strong>Mundo actual:</strong> ${STRATEGY_LABELS[strategy]}</p>
-      <div class="progress-item">
-        <div class="progress-meta"><span>Progreso del mundo</span><span>${mastery}%</span></div>
-        <div class="progress-bar"><span style="width:${mastery}%"></span></div>
-      </div>
-      <div class="kpi-grid">
-        <div class="kpi"><strong>Última sesión</strong><br>${student.lastSessionScore ?? "Sin sesiones"}</div>
-        <div class="kpi"><strong>Sesiones</strong><br>${student.sessionsCompleted}</div>
-        <div class="kpi"><strong>Escala</strong><br>${masteryLabel(mastery)}</div>
-      </div>
-      ${state.sessionDoneMessage ? `<p class="feedback success">${state.sessionDoneMessage}</p>` : ""}
-      <div style="margin-top:1rem;display:flex;justify-content:flex-end;">
-        <button id="go-training" class="btn" type="button">Continuar</button>
-      </div>
-    </div>
-  `;
-
-  const goTraining = document.getElementById("go-training");
-  goTraining?.addEventListener("click", () => {
-    state.sessionDoneMessage = "";
-    setView("entrenamiento");
-  });
-}
-
-function ensureSession() {
-  if (!state.session) {
-    state.session = buildSession(state.activeStudent);
-    state.sessionIndex = 0;
-    state.sessionAnswers = [];
-    state.feedback = null;
-    state.waitingContinue = false;
-    state.currentInput = "";
-  }
-}
-
-function resetSessionState() {
-  state.session = null;
-  state.sessionIndex = 0;
-  state.sessionAnswers = [];
-  state.feedback = null;
-  state.waitingContinue = false;
-  state.currentInput = "";
-}
-
-function getCurrentQuestion() {
-  return state.session?.[state.sessionIndex] ?? null;
-}
-
-function completeSession() {
-  const payload = { answers: state.sessionAnswers };
-  const updated = storage.recordSessionResult(state.activeStudent.id, payload);
-  if (updated) {
-    const unlocked = updateWorldUnlock(updated);
-    storage.updateStudent(updated.id, () => unlocked);
-  }
-
-  refreshActiveStudent();
-  const correct = state.sessionAnswers.filter((entry) => entry.correct).length;
-  state.sessionDoneMessage = `Sesión completada: ${correct}/20 correctas`;
-  resetSessionState();
-  setView("inicio");
-}
-
-function appendDigit(value) {
-  if (state.waitingContinue) {
-    return;
-  }
-  state.currentInput = `${state.currentInput}${value}`;
-  renderEntrenamiento();
-}
-
-function deleteDigit() {
-  if (state.waitingContinue) {
-    return;
-  }
-  state.currentInput = state.currentInput.slice(0, -1);
-  renderEntrenamiento();
-}
-
-function evaluateAnswer() {
-  const question = getCurrentQuestion();
-  if (!question || state.waitingContinue) {
-    return;
-  }
-
-  const userValue = Number(state.currentInput);
-  if (!Number.isFinite(userValue)) {
-    state.feedback = { type: "error", text: "Escribe un número para comprobar." };
-    renderEntrenamiento();
-    return;
-  }
-
-  const correct = userValue === question.respuesta;
-  const answerEntry = {
-    strategy: question.strategy,
-    correct,
-    userAnswer: userValue,
-    expectedAnswer: question.respuesta
-  };
-  state.sessionAnswers.push(answerEntry);
-
-  if (correct) {
-    state.feedback = { type: "success", text: "✅ Correcto" };
-    state.waitingContinue = true;
-    renderEntrenamiento();
-
-    window.setTimeout(() => {
-      state.sessionIndex += 1;
-      state.currentInput = "";
-      state.feedback = null;
-      state.waitingContinue = false;
-      if (state.sessionIndex >= 20) {
-        completeSession();
-      } else {
-        renderEntrenamiento();
-      }
-    }, 700);
-    return;
-  }
-
-  state.feedback = {
-    type: "error",
-    text: "❌ Vamos a verlo",
-    paso1: question.paso1,
-    paso2: question.paso2
-  };
-  state.waitingContinue = true;
-  renderEntrenamiento();
-}
-
-function continueAfterError() {
-  if (!state.waitingContinue) {
-    return;
-  }
-  state.sessionIndex += 1;
-  state.currentInput = "";
-  state.feedback = null;
-  state.waitingContinue = false;
-
-  if (state.sessionIndex >= 20) {
-    completeSession();
-    return;
-  }
-
-  renderEntrenamiento();
-}
-
-function renderEntrenamiento() {
-  views.entrenamiento.classList.toggle("active", !state.selectingStudent && state.view === "entrenamiento");
-  if (!state.activeStudent || state.selectingStudent || state.view !== "entrenamiento") {
-    views.entrenamiento.innerHTML = "";
-    return;
-  }
-
-  if (!state.session) {
-    views.entrenamiento.innerHTML = `
-      <div class="card">
-        <h2>Entrenamiento</h2>
-        <p>Sesión de 20 ejercicios.</p>
-        <button id="start-session" class="btn" type="button">Ejercicios</button>
-      </div>
-    `;
-
-    document.getElementById("start-session")?.addEventListener("click", () => {
-      ensureSession();
-      renderEntrenamiento();
+    document.getElementById('btn-change-student').addEventListener('click', () => {
+        Storage.setActiveStudentId(null);
+        renderStudentSelector();
     });
 
-    return;
-  }
+    document.getElementById('btn-teacher-panel').addEventListener('click', () => {
+        renderTeacherPanel();
+    });
 
-  const question = getCurrentQuestion();
-  if (!question) {
-    views.entrenamiento.innerHTML = "";
-    return;
-  }
-
-  const preventiveHelp = shouldShowPreventiveHelp(state.sessionAnswers, question.strategy)
-    ? `
-      <div class="feedback help">
-        <strong>Pista:</strong><br>
-        ${question.paso1}<br>
-        ${question.paso2}
-      </div>
-    `
-    : "";
-
-  const feedbackBlock = state.feedback
-    ? `
-      <div class="feedback ${state.feedback.type}">
-        ${state.feedback.text}
-        ${state.feedback.paso1 ? `<br>${state.feedback.paso1}` : ""}
-        ${state.feedback.paso2 ? `<br>${state.feedback.paso2}` : ""}
-      </div>
-      ${state.feedback.type === "error" ? `<button id="continue-error" class="btn" type="button">Continuar</button>` : ""}
-    `
-    : "";
-
-  views.entrenamiento.innerHTML = `
-    <div class="practice-shell card">
-      <div class="progress-meta">
-        <span>Ejercicio ${state.sessionIndex + 1}/20</span>
-        <span>${STRATEGY_LABELS[question.strategy]}</span>
-      </div>
-      ${preventiveHelp}
-      <div class="practice-question">${question.enunciado}</div>
-      <div class="answer-row">
-        <input class="answer-input" id="answer-input" value="${state.currentInput}" inputmode="numeric" ${state.waitingContinue ? "disabled" : ""} />
-        <button id="check-btn" class="btn" type="button" ${state.waitingContinue ? "disabled" : ""}>Comprobar</button>
-      </div>
-      <div class="numpad">
-        ${[1,2,3,4,5,6,7,8,9].map((n) => `<button type="button" data-digit="${n}" ${state.waitingContinue ? "disabled" : ""}>${n}</button>`).join("")}
-        <button type="button" id="pad-clear" ${state.waitingContinue ? "disabled" : ""}>Borrar</button>
-        <button type="button" data-digit="0" ${state.waitingContinue ? "disabled" : ""}>0</button>
-        <button type="button" id="pad-enter">Enter</button>
-      </div>
-      ${feedbackBlock}
-    </div>
-  `;
-
-  const input = document.getElementById("answer-input");
-  const checkBtn = document.getElementById("check-btn");
-  input?.addEventListener("input", (event) => {
-    state.currentInput = event.target.value.replace(/[^0-9-]/g, "");
-  });
-  checkBtn?.addEventListener("click", evaluateAnswer);
-
-  views.entrenamiento.querySelectorAll("[data-digit]").forEach((button) => {
-    button.addEventListener("click", () => appendDigit(button.dataset.digit));
-  });
-
-  document.getElementById("pad-clear")?.addEventListener("click", deleteDigit);
-  document.getElementById("pad-enter")?.addEventListener("click", () => {
-    if (state.feedback?.type === "error") {
-      continueAfterError();
-    } else {
-      evaluateAnswer();
-    }
-  });
-
-  document.getElementById("continue-error")?.addEventListener("click", continueAfterError);
-}
-
-function renderProgreso() {
-  views.progreso.classList.toggle("active", !state.selectingStudent && state.view === "progreso");
-  if (!state.activeStudent || state.selectingStudent) {
-    views.progreso.innerHTML = "";
-    return;
-  }
-
-  const mastery = masteryMap(state.activeStudent);
-  const rows = STRATEGIES.map((strategy) => {
-    const value = mastery[strategy];
-    return `
-      <div class="progress-item">
-        <div class="progress-meta">
-          <span>${STRATEGY_LABELS[strategy]}</span>
-          <span>${value}% · ${masteryLabel(value)}</span>
-        </div>
-        <div class="progress-bar"><span style="width:${value}%"></span></div>
-      </div>
-    `;
-  }).join("");
-
-  views.progreso.innerHTML = `<div class="card"><h2>Progreso</h2><div class="progress-list">${rows}</div></div>`;
-}
-
-function renderLogros() {
-  views.logros.classList.toggle("active", !state.selectingStudent && state.view === "logros");
-  if (!state.activeStudent || state.selectingStudent) {
-    views.logros.innerHTML = "";
-    return;
-  }
-
-  const mastery = masteryMap(state.activeStudent);
-  const achievements = [
-    { key: "amigos10", title: "Amigo del 10", unlocked: mastery.amigos10 >= 80 },
-    { key: "amigos100", title: "Constructor del 100", unlocked: mastery.amigos100 >= 80 },
-    { key: "masMenos9", title: "Maestro del +9", unlocked: mastery.masMenos9 >= 80 },
-    { key: "masMenos11", title: "Explorador del 1000", unlocked: mastery.masMenos11 >= 80 }
-  ];
-
-  views.logros.innerHTML = `
-    <div class="card">
-      <h2>Logros</h2>
-      <div class="achievement-grid">
-        ${achievements
-          .map(
-            (item) => `<div class="achievement ${item.unlocked ? "done" : ""}">${item.unlocked ? "✓" : "□"} ${item.title}</div>`
-          )
-          .join("")}
-      </div>
-    </div>
-  `;
-}
-
-function downloadFile(filename, content, type) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function openTeacherPanel() {
-  const rows = storage
-    .getAllStudents()
-    .map((student) => {
-      const mastery = masteryMap(student);
-      return `
-        <tr>
-          <td>${student.id}</td>
-          <td>${student.name}</td>
-          <td>${student.mundoActual + 1}</td>
-          <td>${student.lastSessionScore ?? "-"}</td>
-          <td>${student.sessionsCompleted}</td>
-          <td>${STRATEGIES.map((s) => `${STRATEGY_LABELS[s]}: ${mastery[s]}%`).join(" | ")}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  teacherPanelContent.innerHTML = `
-    <h2>Panel Profesor</h2>
-    <div class="teacher-table-wrap">
-      <table class="teacher-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Alumno</th>
-            <th>Mundo</th>
-            <th>Última sesión</th>
-            <th>Sesiones</th>
-            <th>Dominio por estrategia</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div class="modal-actions">
-      <button id="export-json" class="btn btn-secondary" type="button">Exportar JSON</button>
-      <button id="export-csv" class="btn btn-secondary" type="button">Exportar CSV</button>
-      <label class="btn btn-secondary" for="import-data">Importar JSON/CSV</label>
-      <input id="import-data" type="file" accept=".json,.csv" style="display:none" />
-      <button id="close-teacher-panel" class="btn" type="button">Cerrar</button>
-    </div>
-  `;
-
-  if (!teacherPanelModal.open) {
-    teacherPanelModal.showModal();
-  }
-
-  document.getElementById("export-json")?.addEventListener("click", () => {
-    downloadFile("dragon-data.json", storage.exportJson(), "application/json");
-  });
-
-  document.getElementById("export-csv")?.addEventListener("click", () => {
-    downloadFile("dragon-data.csv", storage.exportCsv(), "text/csv");
-  });
-
-  document.getElementById("import-data")?.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    const text = await file.text();
-    if (file.name.toLowerCase().endsWith(".json") || text.trim().startsWith("{")) {
-      storage.importJson(text);
-    } else {
-      storage.importCsv(text);
-    }
-
-    refreshActiveStudent();
-    render();
-    openTeacherPanel();
-  });
-
-  document.getElementById("close-teacher-panel")?.addEventListener("click", () => {
-    teacherPanelModal.close();
-  });
-}
-
-function render() {
-  renderHeader();
-  renderNav();
-  renderStudentSelector();
-  renderInicio();
-  renderEntrenamiento();
-  renderProgreso();
-  renderLogros();
-}
-
-changeStudentBtn.addEventListener("click", () => {
-  storage.setActiveStudentId("");
-  refreshActiveStudent();
-  resetSessionState();
-  setSelectingStudent(true);
+    // Arranque inicial
+    navigate('inicio');
 });
-
-navButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    if (!state.activeStudent) {
-      return;
-    }
-    setView(button.dataset.view);
-  });
-});
-
-teacherPanelBtn.addEventListener("click", () => {
-  teacherPinInput.value = "";
-  teacherPinError.textContent = "";
-  teacherPinModal.showModal();
-});
-
-teacherPinForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (teacherPinInput.value !== "1234") {
-    teacherPinError.textContent = "PIN incorrecto";
-    return;
-  }
-
-  teacherPinModal.close();
-  openTeacherPanel();
-});
-
-document.addEventListener("keydown", (event) => {
-  if (state.selectingStudent || state.view !== "entrenamiento" || !state.session) {
-    return;
-  }
-  if (event.key === "Enter") {
-    if (state.feedback?.type === "error") {
-      continueAfterError();
-    } else {
-      evaluateAnswer();
-    }
-  }
-});
-
-render();

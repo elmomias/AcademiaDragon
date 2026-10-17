@@ -1,40 +1,39 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Academia del Dragón Matemático</title>
-	<link rel="stylesheet" href="css/styles.css">
-		</link  >
+	<head>
+		<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Academia del Dragón Matemático</title>
+				<link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
-    <header class="app-header">
-        <div class="header-brand">
-            <h1>🐉 Academia del Dragón Matemático</h1>
-            <p class="subtitle">Entrenamiento de cálculo mental · 3º Primaria</p>
-        </div>
-        <div class="header-actions">
-            <span id="active-student-badge" class="student-badge">Sin alumno</span>
-            <button id="btn-change-student" class="btn-secondary">Cambiar alumno</button>
-            <button id="btn-teacher-panel" class="btn-outline">Panel profesor</button>
-        </div>
-    </header>
+	<body>
+		<header class="app-header">
+			<div class="header-brand">
+				<h1>🐉 Academia del Dragón Matemático</h1>
+				<p class="subtitle">Entrenamiento de cálculo mental · 3º Primaria</p>
+			</div>
+			<div class="header-actions">
+				<span id="active-student-badge" class="student-badge">Sin alumno</span>
+				<button id="btn-change-student" class="btn-secondary">Cambiar alumno</button>
+				<button id="btn-teacher-panel" class="btn-outline">Panel profesor</button>
+			</div>
+		</header>
 
-    <nav id="main-nav" class="main-nav">
-        <button class="nav-btn active" data-view="inicio">Inicio</button>
-        <button class="nav-btn" data-view="entrenamiento">Entrenamiento</button>
-        <button class="nav-btn" data-view="progreso">Progreso</button>
-        <button class="nav-btn" data-view="logros">Logros</button>
-    </nav>
+		<nav id="main-nav" class="main-nav">
+			<button class="nav-btn active" data-view="inicio">Inicio</button>
+			<button class="nav-btn" data-view="entrenamiento">Entrenamiento</button>
+			<button class="nav-btn" data-view="progreso">Progreso</button>
+			<button class="nav-btn" data-view="logros">Logros</button>
+		</nav>
 
-    <main id="app-container" class="app-container">
-        <!-- Las vistas se inyectan dinámicamente aquí -->
-    </main>
+		<main id="app-container" class="app-container">
+			<!-- Las vistas se inyectan dinámicamente aquí -->
+		</main>
 
-    <!-- Scripts cargados en orden estricto sin ES Modules para funcionar en file:// -->
-    <script type="text/javascript" src="js/services/storage.js"></script>
-    <script type="text/javascript" src="js/engine/generator.js"></script>
-    <script type="text/javascript" src="js/engine/adaptive.js"></script>
-    <script type="text/javascript" src="js/app.js"></script>
-</body>
+		<!-- Scripts cargados en orden estricto sin ES Modules para funcionar en file:// -->
+		<script src="js/services/storage.js"></script>
+		<script src="js/engine/generator.js"></script>
+		<script src="js/engine/adaptive.js"></script>
+		<script src="js/app.js"></script>
+	</body>
 </html>

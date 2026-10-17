@@ -1,228 +1,140 @@
-const DATA_KEY = "dragon_data_v1";
-const ACTIVE_STUDENT_KEY = "dragon_active_student_id";
+window.DragonApp = window.DragonApp || {};
 
-export const STRATEGIES = [
-  "amigos10",
-  "amigos100",
-  "decena",
-  "resta",
-  "dobles",
-  "casiDobles",
-  "masMenos9",
-  "masMenos11"
-];
+(function () {
+    const STORAGE_KEY = 'dragon_data_v2';
+    const ACTIVE_STUDENT_KEY = 'dragon_active_student_id_v2';
 
-const DEFAULT_NAMES = Array.from({ length: 25 }, (_, i) => `Alumno ${i + 1}`);
+    // URL oficial de tu flujo verificado en Power Automate (Educacyl)
+    const DEFAULT_WEBHOOK_URL = 'https://default669222eed5e54539987ea3015ab6df.31.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/316fe2de303941ffa428ceacf145e8cd/triggers/manual/paths/invoke?api-version=1';
 
-function createDefaultStudent(id, name) {
-  return {
-    id: String(id),
-    name,
-    mundoActual: 0,
-    lastSessionScore: null,
-    sessionsCompleted: 0,
-    strategyStats: STRATEGIES.reduce((acc, key) => {
-      acc[key] = { correct: 0, total: 0, streakErrors: 0 };
-      return acc;
-    }, {}),
-    sessions: []
-  };
-}
+    const STRATEGIES = [
+        { id: 1, name: 'Amigos del 10', targetExercises: 60 },
+        { id: 2, name: 'Amigos del 100', targetExercises: 60 },
+        { id: 3, name: 'Llegar a la decena', targetExercises: 70 },
+        { id: 4, name: 'Restas inteligentes', targetExercises: 70 },
+        { id: 5, name: 'Dobles', targetExercises: 50 },
+        { id: 6, name: 'Casi dobles', targetExercises: 50 },
+        { id: 7, name: '+9 y -9', targetExercises: 60 },
+        { id: 8, name: '+11 y -11', targetExercises: 60 }
+    ];
 
-function createDefaultData() {
-  const students = {};
-  DEFAULT_NAMES.forEach((name, index) => {
-    const id = String(index + 1);
-    students[id] = createDefaultStudent(id, name);
-  });
-  return { students, meta: { version: 1 } };
-}
+    const STUDENT_NAMES = [
+        'ISRAEL', 'MARCO', 'ELI', 'ANDREA', 'ISHAK', 'CARMEN', 
+        'ARIANNA', 'ANGEL', 'MARTA', 'LYAM', 'JUAN ANTONIO', 
+        'HUGO', 'Noah', 'ROMAYS', 'OMAR', 'ADRIAN', 'OONA', 
+        'MOUNA', 'KIKO', 'ALICIA', 'ADAM', 'ARABIA'
+    ];
 
-function safeParse(value) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
+    const DEFAULT_STUDENTS = STUDENT_NAMES.map((nombre, i) => ({
+        id: `alumno_${i + 1}`,
+        nombre: nombre
+    }));
 
-export class DragonStorageService {
-  constructor() {
-    this.data = this.loadData();
-  }
+    function createInitialStudentData(id, nombre) {
+        const dominio = {};
+        const contadores = {};
+        STRATEGIES.forEach(s => {
+            dominio[s.id] = s.id === 1 ? 50 : 0;
+            contadores[s.id] = 0;
+        });
 
-  loadData() {
-    const raw = localStorage.getItem(DATA_KEY);
-    const parsed = raw ? safeParse(raw) : null;
-    if (parsed?.students) {
-      return parsed;
+        return {
+            id,
+            nombre,
+            mundoActual: 1,
+            ultimaSesionCorrectas: null,
+            ultimaSesionTotal: 20,
+            dominio,
+            contadores,
+            historial: [],
+            logros: []
+        };
     }
-    const seed = createDefaultData();
-    localStorage.setItem(DATA_KEY, JSON.stringify(seed));
-    return seed;
-  }
 
-  saveData() {
-    localStorage.setItem(DATA_KEY, JSON.stringify(this.data));
-  }
-
-  getAllStudents() {
-    return Object.values(this.data.students).sort((a, b) => Number(a.id) - Number(b.id));
-  }
-
-  getActiveStudentId() {
-    return localStorage.getItem(ACTIVE_STUDENT_KEY);
-  }
-
-  setActiveStudentId(id) {
-    localStorage.setItem(ACTIVE_STUDENT_KEY, String(id));
-  }
-
-  getStudent(id) {
-    return this.data.students[String(id)] ?? null;
-  }
-
-  getActiveStudent() {
-    const activeId = this.getActiveStudentId();
-    return activeId ? this.getStudent(activeId) : null;
-  }
-
-  updateStudent(id, updater) {
-    const key = String(id);
-    if (!this.data.students[key]) {
-      return null;
-    }
-    const updated = updater(structuredClone(this.data.students[key]));
-    this.data.students[key] = updated;
-    this.saveData();
-    return updated;
-  }
-
-  getMasteryForStudent(student) {
-    return STRATEGIES.reduce((acc, strategy) => {
-      const stats = student.strategyStats[strategy];
-      const mastery = stats.total === 0 ? 0 : Math.round((stats.correct / stats.total) * 100);
-      acc[strategy] = mastery;
-      return acc;
-    }, {});
-  }
-
-  recordSessionResult(studentId, sessionPayload) {
-    const nowIso = new Date().toISOString();
-    const student = this.updateStudent(studentId, (draft) => {
-      const correctCount = sessionPayload.answers.filter((a) => a.correct).length;
-      draft.lastSessionScore = `${correctCount}/20 correctas`;
-      draft.sessionsCompleted += 1;
-      sessionPayload.answers.forEach((answer) => {
-        const stats = draft.strategyStats[answer.strategy];
-        if (!stats) {
-          return;
+    function loadDatabase() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const db = JSON.parse(raw);
+                if (!db.webhookUrl) db.webhookUrl = DEFAULT_WEBHOOK_URL;
+                return db;
+            }
+        } catch (e) {
+            console.error('Error leyendo localStorage:', e);
         }
-        stats.total += 1;
-        if (answer.correct) {
-          stats.correct += 1;
-          stats.streakErrors = 0;
-        } else {
-          stats.streakErrors += 1;
+
+        const initialDb = { students: {}, webhookUrl: DEFAULT_WEBHOOK_URL };
+        DEFAULT_STUDENTS.forEach(st => {
+            initialDb.students[st.id] = createInitialStudentData(st.id, st.nombre);
+        });
+        saveDatabase(initialDb);
+        return initialDb;
+    }
+
+    function saveDatabase(db) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        } catch (e) {
+            console.error('Error guardando localStorage:', e);
         }
-      });
-
-      draft.sessions.push({
-        id: `${draft.id}-${Date.now()}`,
-        timestamp: nowIso,
-        result: draft.lastSessionScore,
-        answers: sessionPayload.answers
-      });
-      draft.sessions = draft.sessions.slice(-30);
-      return draft;
-    });
-
-    if (student) {
-      this.syncToCloud({
-        studentId: student.id,
-        timestamp: nowIso,
-        lastSessionScore: student.lastSessionScore,
-        answers: sessionPayload.answers
-      });
     }
 
-    return student;
-  }
+    window.DragonApp.Storage = {
+        STRATEGIES,
+        getDatabase: loadDatabase,
+        saveDatabase,
 
-  async syncToCloud(sessionPayload) {
-    const endpoint = localStorage.getItem("dragon_cloud_webhook");
-    if (!endpoint) {
-      return { status: "skipped" };
-    }
+        getActiveStudentId() {
+            return localStorage.getItem(ACTIVE_STUDENT_KEY);
+        },
 
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sessionPayload)
-      });
-      return { status: response.ok ? "ok" : "error", code: response.status };
-    } catch {
-      return { status: "error" };
-    }
-  }
+        setActiveStudentId(id) {
+            if (id) {
+                localStorage.setItem(ACTIVE_STUDENT_KEY, id);
+            } else {
+                localStorage.removeItem(ACTIVE_STUDENT_KEY);
+            }
+        },
 
-  exportJson() {
-    return JSON.stringify(this.data, null, 2);
-  }
+        getActiveStudent() {
+            const id = this.getActiveStudentId();
+            if (!id) return null;
+            const db = loadDatabase();
+            return db.students[id] || null;
+        },
 
-  exportCsv() {
-    const header = ["id", "name", "mundoActual", "lastSessionScore", "sessionsCompleted", ...STRATEGIES].join(",");
-    const rows = this.getAllStudents().map((student) => {
-      const mastery = this.getMasteryForStudent(student);
-      const strategyCells = STRATEGIES.map((key) => mastery[key]);
-      return [
-        student.id,
-        `"${student.name.replaceAll('"', '""')}"`,
-        student.mundoActual,
-        student.lastSessionScore ?? "",
-        student.sessionsCompleted,
-        ...strategyCells
-      ].join(",");
-    });
+        updateStudent(studentData) {
+            const db = loadDatabase();
+            db.students[studentData.id] = studentData;
+            saveDatabase(db);
+        },
 
-    return [header, ...rows].join("\n");
-  }
+        renameStudent(id, newName) {
+            const db = loadDatabase();
+            if (db.students[id] && newName.trim()) {
+                db.students[id].nombre = newName.trim().toUpperCase();
+                saveDatabase(db);
+            }
+        },
 
-  importJson(jsonText) {
-    const parsed = safeParse(jsonText);
-    if (!parsed?.students) {
-      throw new Error("JSON no válido");
-    }
-    this.data = parsed;
-    this.saveData();
-  }
+        setWebhookUrl(url) {
+            const db = loadDatabase();
+            db.webhookUrl = url ? url.trim() : '';
+            saveDatabase(db);
+        },
 
-  importCsv(csvText) {
-    const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
-    if (lines.length <= 1) {
-      throw new Error("CSV no válido");
-    }
-    const [, ...rows] = lines;
-
-    rows.forEach((row) => {
-      const columns = row.match(/("[^"]*"|[^,]+)/g)?.map((cell) => cell.replace(/^"|"$/g, "")) ?? [];
-      const [id, name, mundoActual, lastSessionScore, sessionsCompleted] = columns;
-      if (!id) {
-        return;
-      }
-
-      this.updateStudent(id, (draft) => {
-        draft.name = name || draft.name;
-        draft.mundoActual = Number.isFinite(Number(mundoActual)) ? Number(mundoActual) : draft.mundoActual;
-        draft.lastSessionScore = lastSessionScore || draft.lastSessionScore;
-        draft.sessionsCompleted = Number.isFinite(Number(sessionsCompleted))
-          ? Number(sessionsCompleted)
-          : draft.sessionsCompleted;
-        return draft;
-      });
-    });
-
-    this.saveData();
-  }
-}
+        async syncToCloud(sessionPayload) {
+            const db = loadDatabase();
+            const url = db.webhookUrl || DEFAULT_WEBHOOK_URL;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sessionPayload)
+                });
+            } catch (err) {
+                console.warn('No se pudo sincronizar con la nube:', err);
+            }
+        }
+    };
+})();

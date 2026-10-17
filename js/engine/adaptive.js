@@ -1,129 +1,107 @@
-import { STRATEGY_ORDER, generateExercise, strategyByWorldIndex } from "./generator.js";
+window.DragonApp = window.DragonApp || {};
 
-function masteryFromStats(stats) {
-  const result = {};
-  STRATEGY_ORDER.forEach((strategy) => {
-    const item = stats[strategy];
-    const mastery = !item || item.total === 0 ? 0 : Math.round((item.correct / item.total) * 100);
-    result[strategy] = mastery;
-  });
-  return result;
-}
+(function () {
+    const ACHIEVEMENTS = [
+        { id: 'amigo_10', title: 'Amigo del 10', desc: 'Dominio >= 80% en Amigos del 10', strategyId: 1 },
+        { id: 'constructor_100', title: 'Constructor del 100', desc: 'Dominio >= 80% en Amigos del 100', strategyId: 2 },
+        { id: 'saltador_decenas', title: 'Saltador de decenas', desc: 'Dominio >= 80% en Llegar a la decena', strategyId: 3 },
+        { id: 'restas_pro', title: 'Maestro de la Resta', desc: 'Dominio >= 80% en Restas inteligentes', strategyId: 4 },
+        { id: 'dobles_pro', title: 'Rey de los Dobles', desc: 'Dominio >= 80% en Dobles y Casi dobles', strategyId: 5 },
+        { id: 'maestro_9', title: 'Maestro del +9', desc: 'Dominio >= 80% en +9 y -9', strategyId: 7 },
+        { id: 'explorador_1000', title: 'Explorador del 1000', desc: 'Completa los 8 mundos con >= 80%', strategyId: 8 }
+    ];
 
-function weakestStrategies(student, exclude = []) {
-  const mastery = masteryFromStats(student.strategyStats);
-  return [...STRATEGY_ORDER]
-    .filter((s) => !exclude.includes(s))
-    .sort((a, b) => mastery[a] - mastery[b]);
-}
+    function getMasteryLabel(score) {
+        if (score >= 95) return 'Dominio';
+        if (score >= 80) return 'Competente';
+        if (score >= 60) return 'En desarrollo';
+        return 'Necesita ayuda';
+    }
 
-function weightedAdaptiveStrategy(student, fallback) {
-  const weakest = weakestStrategies(student);
-  const first = weakest[0] ?? fallback;
-  const second = weakest[1] ?? fallback;
-  const third = weakest[2] ?? fallback;
+    function buildSessionQuestions(student) {
+        const gen = window.DragonApp.Generator;
+        const currentWorld = student.mundoActual || 1;
+        const unlockedIds = [1, 2, 3, 4, 5, 6, 7, 8].filter(id => id <= currentWorld);
 
-  const roll = Math.random();
-  if (roll < 0.4) {
-    return first;
-  }
-  if (roll < 0.7) {
-    return second;
-  }
-  if (roll < 0.9) {
-    return third;
-  }
-  return fallback;
-}
+        // Ordenar estrategias desbloqueadas de más débil a más fuerte (40/30/20/10)
+        const sortedByWeakness = [...unlockedIds].sort(
+            (a, b) => (student.dominio[a] || 0) - (student.dominio[b] || 0)
+        );
 
-function previousStrategies(worldIndex) {
-  if (worldIndex <= 0) {
-    return [strategyByWorldIndex(0)];
-  }
-  return STRATEGY_ORDER.slice(0, worldIndex);
-}
+        const w1 = sortedByWeakness[0] || currentWorld;
+        const w2 = sortedByWeakness[1] || currentWorld;
+        const w3 = sortedByWeakness[2] || w1;
 
-function transferStrategies(worldIndex) {
-  const base = strategyByWorldIndex(worldIndex);
-  const next = strategyByWorldIndex(Math.min(STRATEGY_ORDER.length - 1, worldIndex + 1));
-  const prev = strategyByWorldIndex(Math.max(0, worldIndex - 1));
-  return [base, next, prev];
-}
+        const questions = [];
 
-export function buildSession(student) {
-  const worldIndex = Math.max(0, Math.min(STRATEGY_ORDER.length - 1, student.mundoActual || 0));
-  const mainStrategy = strategyByWorldIndex(worldIndex);
+        // 1. 5 ejercicios de repaso (ponderados 40/30/20/10)
+        const reviewPool = [w1, w1, w2, w3, unlockedIds[0]];
+        reviewPool.forEach(sId => questions.push(gen.generateByStrategy(sId)));
 
-  const session = [];
+        // 2. 10 ejercicios principales del Mundo Actual
+        for (let i = 0; i < 10; i++) {
+            questions.push(gen.generateByStrategy(currentWorld));
+        }
 
-  const reviewPool = previousStrategies(worldIndex);
-  for (let i = 0; i < 5; i += 1) {
-    const strategy = reviewPool[Math.floor(Math.random() * reviewPool.length)] ?? mainStrategy;
-    session.push(generateExercise(strategy));
-  }
+        // 3. 3 ejercicios de transferencia (combinando las estrategias más débiles)
+        [w1, w2, currentWorld].forEach(sId => questions.push(gen.generateByStrategy(sId)));
 
-  for (let i = 0; i < 10; i += 1) {
-    const strategy = weightedAdaptiveStrategy(student, mainStrategy);
-    session.push(generateExercise(strategy));
-  }
+        // 4. 2 ejercicios sencillos de cierre
+        questions.push(gen.generateByStrategy(1));
+        questions.push(gen.generateByStrategy(currentWorld));
 
-  const transferPool = transferStrategies(worldIndex);
-  for (let i = 0; i < 3; i += 1) {
-    const strategy = transferPool[i % transferPool.length];
-    session.push(generateExercise(strategy));
-  }
+        return questions;
+    }
 
-  const easyPool = ["amigos10", "dobles", "amigos100"];
-  for (let i = 0; i < 2; i += 1) {
-    const strategy = easyPool[Math.floor(Math.random() * easyPool.length)];
-    session.push(generateExercise(strategy));
-  }
+    function shouldTriggerPreventiveHelp(sessionHistory, currentStrategyId) {
+        if (sessionHistory.length < 2) return false;
 
-  return session.slice(0, 20).map((item, index) => ({ ...item, index }));
-}
+        // Condición 1: 2 errores seguidos en la misma estrategia
+        const sameStrategy = sessionHistory.filter(h => h.strategyId === currentStrategyId);
+        if (sameStrategy.length >= 2) {
+            const lastTwo = sameStrategy.slice(-2);
+            if (!lastTwo[0].correct && !lastTwo[1].correct) return true;
+        }
 
-export function shouldShowPreventiveHelp(sessionAnswers, nextStrategy) {
-  if (!sessionAnswers.length) {
-    return false;
-  }
+        // Condición 2: 3 errores en los últimos 5 ejercicios
+        const lastFive = sessionHistory.slice(-5);
+        const errorsInFive = lastFive.filter(h => !h.correct).length;
+        return errorsInFive >= 3;
+    }
 
-  const lastTwoSameStrategyErrors = sessionAnswers.slice(-2).every(
-    (entry) => entry.strategy === nextStrategy && entry.correct === false
-  );
+    function registerAnswer(student, question, isCorrect) {
+        const sId = question.strategyId;
+        const currentScore = student.dominio[sId] || 50;
+        const delta = isCorrect ? 4 : -6;
+        student.dominio[sId] = Math.max(0, Math.min(100, currentScore + delta));
+        student.contadores[sId] = (student.contadores[sId] || 0) + 1;
 
-  const lastFive = sessionAnswers.slice(-5);
-  const errorsInLastFive = lastFive.filter((entry) => !entry.correct).length;
+        // Evaluar desbloqueo del siguiente mundo (20 ejercicios + >=80% dominio)
+        const world = student.mundoActual;
+        if (
+            world < 8 &&
+            (student.contadores[world] || 0) >= 20 &&
+            (student.dominio[world] || 0) >= 80
+        ) {
+            student.mundoActual = world + 1;
+            if ((student.dominio[student.mundoActual] || 0) === 0) {
+                student.dominio[student.mundoActual] = 50;
+            }
+        }
 
-  return lastTwoSameStrategyErrors || errorsInLastFive >= 3;
-}
+        // Evaluar logros pedagógicos
+        ACHIEVEMENTS.forEach(ach => {
+            if ((student.dominio[ach.strategyId] || 0) >= 80 && !student.logros.includes(ach.id)) {
+                student.logros.push(ach.id);
+            }
+        });
+    }
 
-export function updateWorldUnlock(student) {
-  const current = strategyByWorldIndex(student.mundoActual || 0);
-  const stats = student.strategyStats[current];
-  if (!stats || stats.total < 20) {
-    return student;
-  }
-
-  const mastery = stats.total === 0 ? 0 : (stats.correct / stats.total) * 100;
-  if (mastery >= 80 && student.mundoActual < STRATEGY_ORDER.length - 1) {
-    return {
-      ...student,
-      mundoActual: student.mundoActual + 1
+    window.DragonApp.Adaptive = {
+        ACHIEVEMENTS,
+        getMasteryLabel,
+        buildSessionQuestions,
+        shouldTriggerPreventiveHelp,
+        registerAnswer
     };
-  }
-
-  return student;
-}
-
-export function masteryLabel(value) {
-  if (value <= 59) {
-    return "Necesita ayuda";
-  }
-  if (value <= 79) {
-    return "En desarrollo";
-  }
-  if (value <= 94) {
-    return "Competente";
-  }
-  return "Dominio";
-}
+})();
