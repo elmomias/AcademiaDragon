@@ -1,0 +1,353 @@
+:root {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --text: #182230;
+  --muted: #5b6675;
+  --primary: #1767ff;
+  --primary-dark: #0f4ec7;
+  --success: #128a43;
+  --error: #b42318;
+  --warning: #b54708;
+  --border: #d0d7e2;
+  --shadow: 0 10px 24px rgba(24, 34, 48, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-block h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.brand-block p {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.active-student {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.main-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-btn {
+  border: 2px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nav-btn.active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.view-container {
+  padding: 1rem;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.btn {
+  border: 0;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: #e6ecf7;
+  color: #243447;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.student-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.65rem;
+}
+
+.student-btn {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-btn:hover {
+  border-color: var(--primary);
+}
+
+.kpi-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi {
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #eef3ff;
+  text-align: center;
+}
+
+.practice-shell {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.practice-question {
+  font-size: clamp(1.4rem, 5vw, 2.1rem);
+  font-weight: 800;
+  text-align: center;
+  padding: 1rem;
+}
+
+.answer-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.answer-input {
+  max-width: 240px;
+  width: 100%;
+  font-size: 1.4rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+  padding: 0.7rem;
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.numpad button {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  min-height: 52px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feedback {
+  border-radius: 12px;
+  padding: 0.8rem;
+  font-weight: 700;
+}
+
+.feedback.success {
+  background: #e7f8ef;
+  color: var(--success);
+}
+
+.feedback.error {
+  background: #ffeceb;
+  color: var(--error);
+}
+
+.feedback.help {
+  background: #fff7e7;
+  color: var(--warning);
+}
+
+.progress-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.progress-item {
+  padding: 0.65rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: #e9eef8;
+  overflow: hidden;
+}
+
+.progress-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #3d86ff);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.6rem;
+}
+
+.achievement {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: #fff;
+  font-weight: 600;
+}
+
+.achievement.done {
+  border-color: var(--success);
+  color: var(--success);
+  background: #effaf3;
+}
+
+.modal {
+  border: 0;
+  border-radius: 12px;
+  max-width: min(1000px, 95vw);
+  width: 100%;
+  padding: 0;
+}
+
+.modal::backdrop {
+  background: rgba(16, 24, 40, 0.5);
+}
+
+.modal-card {
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.modal-card.wide {
+  width: min(1000px, 95vw);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.teacher-table-wrap {
+  overflow: auto;
+  max-height: 320px;
+}
+
+.teacher-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.teacher-table th,
+.teacher-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.error-text {
+  min-height: 1rem;
+  color: var(--error);
+}
+
+@media (max-width: 780px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
