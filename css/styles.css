@@ -250,6 +250,17 @@ body {
     border-color: var(--primary);
 }
 
+.answer-input::-webkit-inner-spin-button,
+.answer-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.answer-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
 .keypad {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -371,4 +382,64 @@ body {
 
 .teacher-table th {
     background: #f8fafc;
+}
+
+.achievement-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px 16px;
+    border-radius: var(--radius);
+    border: 3px solid var(--border);
+    transition: transform 0.2s ease;
+}
+
+.achievement-card:hover {
+    transform: translateY(-4px);
+}
+
+.medal-title {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+}
+
+.medal-egg {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.medal-egg .medal-title {
+    color: #64748b;
+}
+
+.medal-bronze {
+    background: #fff7ed;
+    border-color: #fdba74;
+}
+
+.medal-bronze .medal-title {
+    color: #c2410c;
+}
+
+.medal-silver {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.medal-silver .medal-title {
+    color: #334155;
+}
+
+.medal-gold {
+    background: #fefce8;
+    border-color: #fde047;
+    box-shadow: 0 8px 20px rgba(250, 204, 21, 0.25);
+}
+
+.medal-gold .medal-title {
+    color: #a16207;
 }

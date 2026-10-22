@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentView = 'inicio';
     let sessionState = null;
 
+    function nowMs() {
+        return (window.performance && typeof window.performance.now === 'function')
+            ? window.performance.now()
+            : Date.now();
+    }
+
     function updateHeader() {
         const student = Storage.getActiveStudent();
         studentBadge.textContent = student ? `👤 ${student.nombre}` : 'Selecciona alumno';
@@ -43,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             <div class="card">
-                <h2>👋 ¡Bienvenido a 3ºB Hermandad del Dragón!</h2>
+                <h2>👋 ¡Bienvenido a 3ºB Hermandad del Dragon!</h2>
                 <p class="subtitle" style="margin-top:6px;">Toca tu nombre para entrar directamente a tu entrenamiento:</p>
                 <div class="student-grid">
                     ${students.map(st => `
@@ -108,6 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentIndex: 0,
                 correctCount: 0,
                 history: [],
+                responseTimesMs: [],
+                questionStartMs: 0,
                 awaitingNext: false,
                 startTime: Date.now()
             };
@@ -142,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="math-prompt">${q.prompt}</div>
 
-                    <input type="number" id="answer-input" class="answer-input" placeholder="?" autocomplete="off" />
+                    <input type="number" id="answer-input" class="answer-input" placeholder="?" autocomplete="off" min="0" inputmode="numeric" />
 
                     <button id="btn-check" class="btn-primary" style="width:100%;">Comprobar</button>
 
@@ -166,12 +174,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const input = document.getElementById('answer-input');
         const checkBtn = document.getElementById('btn-check');
+        sessionState.questionStartMs = nowMs();
         input.focus();
 
         function submitAnswer() {
             if (sessionState.awaitingNext) return;
             const val = parseInt(input.value, 10);
-            if (isNaN(val)) return;
+            if (isNaN(val) || val < 0) return;
+
+            const elapsedMs = Math.max(0, nowMs() - sessionState.questionStartMs);
+            sessionState.responseTimesMs.push(elapsedMs);
 
             sessionState.awaitingNext = true;
             const isCorrect = val === q.answer;
@@ -214,7 +226,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         checkBtn.addEventListener('click', submitAnswer);
         input.addEventListener('keydown', (e) => {
+            if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                e.preventDefault();
+                return;
+            }
             if (e.key === 'Enter') submitAnswer();
+        });
+        input.addEventListener('wheel', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        input.addEventListener('input', () => {
+            const sanitizedValue = input.value.replace(/[^0-9]/g, '');
+            if (sanitizedValue === '') {
+                input.value = '';
+                return;
+            }
+            const numericValue = parseInt(sanitizedValue, 10);
+            input.value = Number.isNaN(numericValue) ? '' : Math.max(0, numericValue).toString();
         });
 
         container.querySelectorAll('.key-btn').forEach(btn => {
@@ -229,19 +257,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function finishSession() {
+    async function flushPendingSyncQueue() {
+        try {
+            await Storage.flushSyncQueue();
+        } catch (err) {
+            console.warn('No se pudo vaciar la cola de sincronizacion:', err);
+        }
+    }
+
+    async function finishSession() {
         const student = Storage.getActiveStudent();
+        const tiempoMedioSeg = Adaptive.getAverageResponseTimeSec(sessionState.responseTimesMs);
+
         student.ultimaSesionCorrectas = sessionState.correctCount;
         student.ultimaSesionTotal = 20;
         Storage.updateStudent(student);
 
-        Storage.syncToCloud({
-            alumno: student.nombre,
+        const syncResult = await Storage.syncToCloud({
+            alumno: Storage.normalizeName(student.nombre),
             mundoActual: student.mundoActual,
             aciertos: sessionState.correctCount,
             dominio: student.dominio,
+            tiempoMedioSeg,
             fecha: new Date().toISOString()
         });
+
+        if (syncResult && syncResult.ok) {
+            await flushPendingSyncQueue();
+        }
 
         const score = sessionState.correctCount;
         sessionState = null;
@@ -282,6 +325,52 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function renderAchievements() {
+        const student = Storage.getActiveStudent();
+
+        container.innerHTML = `
+            <div class="card">
+                <h2 style="margin-bottom:20px;">🏅 Medallas de la Hermandad del Dragón</h2>
+                <div class="achievements-grid">
+                    ${Storage.STRATEGIES.map(strategy => {
+                        const pct = student.dominio[strategy.id] || 0;
+                        let medalIcon = '🥚';
+                        let medalClass = 'medal-egg';
+                        let medalTitle = 'Huevo de Dragón';
+                        let medalDescription = 'Sigue practicando (Menos de 60%)';
+
+                        if (pct >= 95) {
+                            medalIcon = '🥇';
+                            medalClass = 'medal-gold';
+                            medalTitle = 'Maestro Dragón';
+                            medalDescription = '¡Dominio perfecto!';
+                        } else if (pct >= 80) {
+                            medalIcon = '🥈';
+                            medalClass = 'medal-silver';
+                            medalTitle = 'Guerrero Dragón';
+                            medalDescription = 'Nivel Competente (80% o más)';
+                        } else if (pct >= 60) {
+                            medalIcon = '🥉';
+                            medalClass = 'medal-bronze';
+                            medalTitle = 'Aprendiz Dragón';
+                            medalDescription = 'En desarrollo (60% o más)';
+                        }
+
+                        return `
+                            <div class="achievement-card ${medalClass}">
+                                <div style="font-size:3.5rem; line-height:1; text-align:center;">${medalIcon}</div>
+                                <h3 style="margin-top:12px; text-align:center;">Mundo ${strategy.id}: ${strategy.name}</h3>
+                                <div class="medal-title">${medalTitle}</div>
+                                <div style="margin-top:6px; text-align:center; font-weight:700;">${pct}%</div>
+                                <p class="subtitle" style="margin-top:8px; text-align:center;">${medalDescription}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     function renderTeacherPanel() {
         const pin = prompt('Introduce el PIN de profesor (por defecto: 1234):');
         if (pin !== '1234') {
@@ -296,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = `
             <div class="card" style="overflow-x:auto;">
-                <h2>👨‍🏫 Panel del Profesor · 3ºB Hermandad del Dragón</h2>
+                <h2>👨‍🏫 Panel del Profesor · 3ºB Hermandad del Dragon</h2>
                 <p class="subtitle" style="margin-bottom:16px;">Haz clic en el nombre de un alumno para renombrarlo o en su Mundo para cambiarlo de nivel (1 a 8).</p>
                 <table class="teacher-table">
                     <thead>
@@ -371,5 +460,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Arranque inicial
+    flushPendingSyncQueue();
     navigate('inicio');
 });

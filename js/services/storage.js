@@ -1,11 +1,8 @@
 window.DragonApp = window.DragonApp || {};
 
 (function () {
-    const STORAGE_KEY = 'dragon_data_v2';
-    const ACTIVE_STUDENT_KEY = 'dragon_active_student_id_v2';
-
-    // URL oficial de tu flujo verificado en Power Automate (Educacyl)
-    const DEFAULT_WEBHOOK_URL = 'https://default669222eed5e54539987ea3015ab6df.31.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/316fe2de303941ffa428ceacf145e8cd/triggers/manual/paths/invoke?api-version=1';
+    const STORAGE_KEY = 'dragon_data_local_v2';
+    const ACTIVE_STUDENT_KEY = 'dragon_active_student_local_v1';
 
     const STRATEGIES = [
         { id: 1, name: 'Amigos del 10', targetExercises: 60 },
@@ -18,17 +15,13 @@ window.DragonApp = window.DragonApp || {};
         { id: 8, name: '+11 y -11', targetExercises: 60 }
     ];
 
-    const STUDENT_NAMES = [
-        'ISRAEL', 'MARCO', 'ELI', 'ANDREA', 'ISHAK', 'CARMEN', 
-        'ARIANNA', 'ANGEL', 'MARTA', 'LYAM', 'JUAN ANTONIO', 
-        'HUGO', 'Noah', 'ROMAYS', 'OMAR', 'ADRIAN', 'OONA', 
-        'MOUNA', 'KIKO', 'ALICIA', 'ADAM', 'ARABIA'
-    ];
-
-    const DEFAULT_STUDENTS = STUDENT_NAMES.map((nombre, i) => ({
-        id: `alumno_${i + 1}`,
-        nombre: nombre
-    }));
+    const DEFAULT_STUDENTS = Array.from({ length: 22 }, (_, i) => {
+        const num = (i + 1).toString().padStart(2, '0');
+        return {
+            id: `dragon_${num}`,
+            nombre: `DRAGON ${num}`
+        };
+    });
 
     function createInitialStudentData(id, nombre) {
         const dominio = {};
@@ -44,6 +37,7 @@ window.DragonApp = window.DragonApp || {};
             mundoActual: 1,
             ultimaSesionCorrectas: null,
             ultimaSesionTotal: 20,
+            tiempoMedioSeg: null,
             dominio,
             contadores,
             historial: [],
@@ -54,16 +48,12 @@ window.DragonApp = window.DragonApp || {};
     function loadDatabase() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const db = JSON.parse(raw);
-                if (!db.webhookUrl) db.webhookUrl = DEFAULT_WEBHOOK_URL;
-                return db;
-            }
+            if (raw) return JSON.parse(raw);
         } catch (e) {
             console.error('Error leyendo localStorage:', e);
         }
 
-        const initialDb = { students: {}, webhookUrl: DEFAULT_WEBHOOK_URL };
+        const initialDb = { students: {} };
         DEFAULT_STUDENTS.forEach(st => {
             initialDb.students[st.id] = createInitialStudentData(st.id, st.nombre);
         });
@@ -117,24 +107,24 @@ window.DragonApp = window.DragonApp || {};
             }
         },
 
-        setWebhookUrl(url) {
+        exportToCSV() {
             const db = loadDatabase();
-            db.webhookUrl = url ? url.trim() : '';
-            saveDatabase(db);
-        },
+            const students = Object.values(db.students);
+            
+            let csv = 'Identificador;Mundo Actual;Ultima Sesion;Tiempo Medio (s);Dom E1;Dom E2;Dom E3;Dom E4;Dom E5;Dom E6;Dom E7;Dom E8\n';
+            
+            students.forEach(st => {
+                const aciertos = st.ultimaSesionCorrectas !== null ? `${st.ultimaSesionCorrectas}/20` : '-';
+                const tiempo = st.tiempoMedioSeg !== null ? st.tiempoMedioSeg : '-';
+                const doms = STRATEGIES.map(s => `${st.dominio[s.id] || 0}%`).join(';');
+                csv += `${st.nombre};${st.mundoActual};${aciertos};${tiempo};${doms}\n`;
+            });
 
-        async syncToCloud(sessionPayload) {
-            const db = loadDatabase();
-            const url = db.webhookUrl || DEFAULT_WEBHOOK_URL;
-            try {
-                await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sessionPayload)
-                });
-            } catch (err) {
-                console.warn('No se pudo sincronizar con la nube:', err);
-            }
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `progreso_dragon_3B_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
         }
     };
 })();

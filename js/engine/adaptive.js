@@ -97,11 +97,22 @@ window.DragonApp = window.DragonApp || {};
         });
     }
 
+    function getAverageResponseTimeSec(responseTimesMs) {
+        if (!Array.isArray(responseTimesMs) || responseTimesMs.length === 0) return 0;
+        const totalMs = responseTimesMs.reduce((acc, value) => {
+            const safeValue = Number(value);
+            return acc + (Number.isFinite(safeValue) && safeValue >= 0 ? safeValue : 0);
+        }, 0);
+        const averageSec = (totalMs / responseTimesMs.length) / 1000;
+        return Number(averageSec.toFixed(2));
+    }
+
     window.DragonApp.Adaptive = {
         ACHIEVEMENTS,
         getMasteryLabel,
         buildSessionQuestions,
         shouldTriggerPreventiveHelp,
-        registerAnswer
+        registerAnswer,
+        getAverageResponseTimeSec
     };
 })();
