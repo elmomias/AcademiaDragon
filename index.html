@@ -1,39 +1,147 @@
 <!DOCTYPE html>
 <html lang="es">
-	<head>
-		<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>Academia del Dragón Matemático</title>
-				<link rel="stylesheet" href="css/styles.css">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academia del Dragón</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
-	<body>
-		<header class="app-header">
-			<div class="header-brand">
-				<h1>🐉 Academia del Dragón Matemático</h1>
-				<p class="subtitle">Entrenamiento de cálculo mental · 3º Primaria</p>
-			</div>
-			<div class="header-actions">
-				<span id="active-student-badge" class="student-badge">Sin alumno</span>
-				<button id="btn-change-student" class="btn-secondary">Cambiar alumno</button>
-				<button id="btn-teacher-panel" class="btn-outline">Panel profesor</button>
-			</div>
-		</header>
+<body>
+    <div id="app" class="theme-neutral">
+        <header class="app-header">
+            <button id="btn-home" class="logo-btn" type="button" aria-label="Volver al inicio">🐉 Academia del Dragón</button>
+            <div class="header-actions">
+                <span id="student-name-label" class="student-label" hidden></span>
+                <button id="btn-edit-name" class="header-btn" type="button" hidden title="Cambiar nombre">✏️ Nombre</button>
+                <button id="btn-teacher-panel" class="header-btn" type="button">⚙️ Profesor</button>
+            </div>
+        </header>
 
-		<nav id="main-nav" class="main-nav">
-			<button class="nav-btn active" data-view="inicio">Inicio</button>
-			<button class="nav-btn" data-view="entrenamiento">Entrenamiento</button>
-			<button class="nav-btn" data-view="progreso">Progreso</button>
-			<button class="nav-btn" data-view="logros">Logros</button>
-		</nav>
+        <main class="container">
+            <section id="view-name-input" class="view-card name-view" hidden>
+                <div class="eyebrow">Bienvenido a tu academia</div>
+                <h1>🐉 Escribe tu nombre para empezar</h1>
+                <p>Tu progreso se guardará únicamente en este portátil.</p>
+                <form id="name-form" class="name-form">
+                    <label for="student-name-input">Nombre o apodo</label>
+                    <input id="student-name-input" type="text" maxlength="20" autocomplete="name" required placeholder="Tu nombre">
+                    <button class="action-btn primary" type="submit">¡Adelante!</button>
+                </form>
+            </section>
 
-		<main id="app-container" class="app-container">
-			<!-- Las vistas se inyectan dinámicamente aquí -->
-		</main>
+            <section id="view-hub" class="view-card" hidden>
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow">Elige una aventura</div>
+                        <h1>¡Hola, <span id="hub-student-name"></span>!</h1>
+                    </div>
+                    <span id="hub-rec-badge" class="status-badge" hidden>Refuerzo 2º activo</span>
+                </div>
+                <div class="hub-grid">
+                    <button class="subject-card math-card" type="button" data-subject="math">
+                        <span class="subject-icon">🐉🔢</span>
+                        <span class="subject-title">Dragón Matemático</span>
+                        <span>Cálculo mental y estrategias numéricas</span>
+                    </button>
+                    <button class="subject-card lengua-card" type="button" data-subject="lengua">
+                        <span class="subject-icon">🐉📖</span>
+                        <span class="subject-title">Dragón de Lengua</span>
+                        <span>Ortografía, vocabulario y gramática</span>
+                    </button>
+                    <button class="subject-card mystery-card" type="button" data-subject="mystery">
+                        <span class="subject-icon">🕵️‍♂️</span>
+                        <span class="subject-title">Historias de Misterio</span>
+                        <span>Comprensión lectora por párrafos</span>
+                    </button>
+                </div>
+            </section>
 
-		<!-- Scripts cargados en orden estricto sin ES Modules para funcionar en file:// -->
-		<script src="js/services/storage.js"></script>
-		<script src="js/engine/generator.js"></script>
-		<script src="js/engine/adaptive.js"></script>
-		<script src="js/app.js"></script>
-	</body>
+            <section id="view-category-select" class="view-card" hidden>
+                <div class="view-toolbar">
+                    <button id="btn-category-back" class="text-btn" type="button">← Asignaturas</button>
+                    <span id="category-subject-label" class="status-badge"></span>
+                </div>
+                <div class="section-heading compact">
+                    <div>
+                        <div class="eyebrow">Práctica por categoría</div>
+                        <h1 id="category-title">Elige una lección</h1>
+                        <p>La sesión tendrá 20 ejercicios exclusivos de esta categoría.</p>
+                    </div>
+                </div>
+                <div id="category-grid" class="category-grid"></div>
+            </section>
+
+            <section id="view-practice" class="view-card practice-card" hidden>
+                <div class="view-toolbar">
+                    <button id="btn-practice-back" class="text-btn" type="button">← Categorías</button>
+                    <span id="practice-progress" class="status-badge">Ejercicio 1 de 20</span>
+                </div>
+                <div id="practice-category" class="eyebrow"></div>
+                <div id="practice-prompt" class="prompt-box" aria-live="polite"></div>
+                <div id="practice-options" class="options-grid" hidden></div>
+                <form id="answer-form" class="input-container">
+                    <label class="sr-only" for="practice-input">Tu respuesta</label>
+                    <input id="practice-input" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe tu respuesta">
+                    <button class="action-btn primary" type="submit">Comprobar</button>
+                </form>
+                <div id="practice-feedback" class="feedback-box" aria-live="polite" hidden></div>
+            </section>
+
+            <section id="view-mystery" class="view-card mystery-panel" hidden>
+                <div class="view-toolbar">
+                    <button id="btn-mystery-back" class="text-btn" type="button">← Asignaturas</button>
+                    <label class="story-picker">Historia
+                        <select id="mystery-story-selector"></select>
+                    </label>
+                </div>
+                <div id="mystery-step" class="status-badge"></div>
+                <h1 id="mystery-title"></h1>
+                <div class="story-card"><p id="mystery-text"></p></div>
+                <h2 id="mystery-prompt"></h2>
+                <div id="mystery-options" class="options-grid"></div>
+                <div id="mystery-feedback" class="feedback-box" aria-live="polite" hidden></div>
+            </section>
+
+            <section id="view-teacher" class="view-card" hidden>
+                <div class="view-toolbar">
+                    <div>
+                        <div class="eyebrow">Gestión local</div>
+                        <h1>Panel de Profesor</h1>
+                    </div>
+                    <button id="btn-close-teacher" class="action-btn secondary" type="button">Cerrar panel</button>
+                </div>
+                <div class="teacher-grid">
+                    <div class="teacher-box">
+                        <label for="teacher-student-name">Nombre del alumno</label>
+                        <div class="inline-form">
+                            <input id="teacher-student-name" type="text" maxlength="20">
+                            <button id="btn-save-name" class="action-btn primary" type="button">Guardar</button>
+                        </div>
+                    </div>
+                    <div class="teacher-box">
+                        <span class="field-label">Itinerario de aprendizaje</span>
+                        <label class="switch-row">
+                            <input id="teacher-toggle-rec" type="checkbox">
+                            <span>Modo Recuperación (Refuerzo 2º)</span>
+                        </label>
+                        <strong id="teacher-rec-status">Estándar 3º</strong>
+                    </div>
+                    <div class="teacher-box stats-box">
+                        <h2>Rendimiento de este portátil</h2>
+                        <div id="teacher-stats-text"></div>
+                    </div>
+                </div>
+                <div class="teacher-actions">
+                    <button id="btn-export-csv" class="action-btn secondary" type="button">📊 Exportar CSV</button>
+                    <button id="btn-reset-data" class="action-btn danger" type="button">⚠️ Resetear datos</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/services/storage.js"></script>
+    <script src="js/engine/generator_math.js"></script>
+    <script src="js/engine/generator_lengua.js"></script>
+    <script src="js/app.js"></script>
+</body>
 </html>

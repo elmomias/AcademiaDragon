@@ -2,464 +2,449 @@ window.DragonApp = window.DragonApp || {};
 
 document.addEventListener('DOMContentLoaded', () => {
     const Storage = window.DragonApp.Storage;
-    const Adaptive = window.DragonApp.Adaptive;
+    const MathGenerator = window.DragonApp.GeneratorMath;
+    const LanguageGenerator = window.DragonApp.GeneratorLengua;
+    const SESSION_LENGTH = 20;
 
-    const container = document.getElementById('app-container');
-    const studentBadge = document.getElementById('active-student-badge');
-    const navButtons = document.querySelectorAll('.nav-btn');
+    const categories = {
+        math: [
+            [1, 'Amigos del 10', 'Completar, descomponer y usar parejas del 10'],
+            [2, 'Llegar a la decena', 'Puentes y sumas pasando por la decena'],
+            [3, 'Dobles y mitades', 'Cálculo directo e incógnitas'],
+            [4, 'Restas inteligentes', 'Restas pasando por la decena inferior'],
+            [5, 'Casi dobles', 'Consecutivos usando el doble como apoyo'],
+            [6, 'Sumar y restar 9', 'Compensación con +10 y -1'],
+            [7, 'Sumar y restar 11', 'Descomposición con 10 y 1'],
+            [8, 'Amigos del 100', 'Complementarios exactos y tres sumandos'],
+            [9, 'Aproximar a la decena', 'Seleccionar la decena más cercana'],
+            [10, 'Sumas con llevadas', 'Desglosar unidades y decenas'],
+            [11, 'Restas con llevadas', 'Pedir una decena y restar'],
+            [12, 'Multiplicar por 10, 100 y 1000', 'Añadir ceros con seguridad']
+        ],
+        lengua: [
+            [1, 'Ortografía C / QU', 'Escribe palabras completas correctamente'],
+            [2, 'Ortografía G / GU / GÜ', 'Practica la diéresis y el sonido suave'],
+            [3, 'Mayúsculas', 'Reescribe oraciones y nombres propios'],
+            [4, 'Sinónimos y antónimos', 'Relaciona el significado de las palabras'],
+            [5, 'Sílabas y acentuación', 'Clasifica palabras y tildes'],
+            [6, 'Sustantivos y pronombres', 'Género, número y sustitución nominal']
+        ]
+    };
 
-    let currentView = 'inicio';
-    let sessionState = null;
+    const recoveryCategories = [
+        [101, 'Centenas, decenas y unidades', 'Descomponer números hasta 999'],
+        [102, 'Series numéricas', 'Contar de 2 en 2, 5 en 5 y 10 en 10']
+    ];
 
-    function nowMs() {
-        return (window.performance && typeof window.performance.now === 'function')
-            ? window.performance.now()
-            : Date.now();
+    const elements = {
+        app: document.getElementById('app'),
+        nameInput: document.getElementById('student-name-input'),
+        hubName: document.getElementById('hub-student-name'),
+        nameLabel: document.getElementById('student-name-label'),
+        editName: document.getElementById('btn-edit-name'),
+        recoveryBadge: document.getElementById('hub-rec-badge'),
+        categoryGrid: document.getElementById('category-grid'),
+        categoryTitle: document.getElementById('category-title'),
+        categorySubject: document.getElementById('category-subject-label'),
+        prompt: document.getElementById('practice-prompt'),
+        progress: document.getElementById('practice-progress'),
+        practiceCategory: document.getElementById('practice-category'),
+        options: document.getElementById('practice-options'),
+        answerForm: document.getElementById('answer-form'),
+        answerInput: document.getElementById('practice-input'),
+        feedback: document.getElementById('practice-feedback')
+    };
+
+    const views = {
+        name: document.getElementById('view-name-input'),
+        hub: document.getElementById('view-hub'),
+        categories: document.getElementById('view-category-select'),
+        practice: document.getElementById('view-practice'),
+        mystery: document.getElementById('view-mystery'),
+        teacher: document.getElementById('view-teacher')
+    };
+
+    const state = {
+        subject: null,
+        categoryId: null,
+        categoryName: '',
+        exerciseIndex: 0,
+        score: 0,
+        exercise: null,
+        answered: false,
+        timer: null,
+        mysteryStoryId: 1
+    };
+
+    function setTheme(theme) {
+        elements.app.className = `theme-${theme}`;
     }
 
-    function updateHeader() {
-        const student = Storage.getActiveStudent();
-        studentBadge.textContent = student ? `👤 ${student.nombre}` : 'Selecciona alumno';
-        navButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === currentView);
+    function showView(name, theme = 'neutral') {
+        clearTimeout(state.timer);
+        Object.entries(views).forEach(([key, view]) => {
+            view.hidden = key !== name;
         });
+        setTheme(theme);
     }
 
-    function navigate(view) {
-        const student = Storage.getActiveStudent();
-        if (!student && view !== 'selector' && view !== 'profesor') {
-            renderStudentSelector();
+    function renderIdentity() {
+        const data = Storage.getData();
+        const hasName = Boolean(data.name);
+        elements.hubName.textContent = data.name;
+        elements.nameLabel.textContent = data.name;
+        elements.nameLabel.hidden = !hasName;
+        elements.editName.hidden = !hasName;
+        elements.recoveryBadge.hidden = !data.modoRecuperacion;
+    }
+
+    function start() {
+        renderIdentity();
+        showView(Storage.getData().name ? 'hub' : 'name');
+    }
+
+    function openSubject(subject) {
+        if (subject === 'mystery') {
+            openMystery();
             return;
         }
-        currentView = view;
-        updateHeader();
-
-        if (view === 'inicio') renderDashboard();
-        else if (view === 'entrenamiento') startOrResumeSession();
-        else if (view === 'progreso') renderProgress();
-        else if (view === 'logros') renderAchievements();
-        else if (view === 'profesor') renderTeacherPanel();
+        state.subject = subject;
+        state.categoryId = null;
+        renderCategories();
+        showView('categories', subject);
     }
 
-    function renderStudentSelector() {
-        currentView = 'selector';
-        updateHeader();
-        const db = Storage.getDatabase();
-        const students = Object.values(db.students);
+    function renderCategories() {
+        const subject = state.subject;
+        const data = Storage.getData();
+        const list = subject === 'math' && data.modoRecuperacion
+            ? [...categories.math, ...recoveryCategories]
+            : categories[subject];
+        const subjectName = subject === 'math' ? 'Dragón Matemático' : 'Dragón de Lengua';
+        elements.categoryTitle.textContent = subjectName;
+        elements.categorySubject.textContent = subject === 'math' ? 'Matemáticas' : 'Lengua';
+        elements.categoryGrid.replaceChildren();
 
-        container.innerHTML = `
-            <div class="card">
-                <h2>👋 ¡Bienvenido a 3ºB Hermandad del Dragon!</h2>
-                <p class="subtitle" style="margin-top:6px;">Toca tu nombre para entrar directamente a tu entrenamiento:</p>
-                <div class="student-grid">
-                    ${students.map(st => `
-                        <button class="student-card-btn" data-id="${st.id}">
-                            ${st.nombre}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+        list.forEach(([id, title, description]) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'category-btn';
+            const strong = document.createElement('strong');
+            strong.textContent = title;
+            const small = document.createElement('small');
+            small.textContent = description;
+            button.append(strong, small);
+            button.addEventListener('click', () => startSession(id, title));
+            elements.categoryGrid.appendChild(button);
+        });
+    }
 
-        container.querySelectorAll('.student-card-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                Storage.setActiveStudentId(btn.dataset.id);
-                navigate('inicio');
+    function startSession(categoryId, categoryName) {
+        state.categoryId = categoryId;
+        state.categoryName = categoryName;
+        state.exerciseIndex = 0;
+        state.score = 0;
+        state.exercise = null;
+        showView('practice', state.subject);
+        nextExercise();
+    }
+
+    function nextExercise() {
+        clearTimeout(state.timer);
+        if (state.exerciseIndex >= SESSION_LENGTH) {
+            finishSession();
+            return;
+        }
+        state.exerciseIndex += 1;
+        state.answered = false;
+        state.exercise = state.subject === 'math'
+            ? MathGenerator.generateByStrategy(state.categoryId)
+            : LanguageGenerator.generateByStrategy(state.categoryId);
+        renderExercise();
+    }
+
+    function normalizeAnswer(value) {
+        return String(value)
+            .trim()
+            .toLocaleLowerCase('es')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[¿?¡!.,;:]+/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function lockAnswers(locked) {
+        elements.answerInput.disabled = locked;
+        elements.answerForm.querySelector('button').disabled = locked;
+        elements.options.querySelectorAll('button').forEach(button => {
+            button.disabled = locked;
+        });
+    }
+
+    function renderExercise() {
+        const exercise = state.exercise;
+        elements.progress.textContent = `Ejercicio ${state.exerciseIndex} de ${SESSION_LENGTH}`;
+        elements.practiceCategory.textContent = state.categoryName;
+        elements.prompt.textContent = exercise.prompt;
+        elements.feedback.hidden = true;
+        elements.feedback.className = 'feedback-box';
+        elements.options.replaceChildren();
+        elements.answerInput.value = '';
+
+        const hasOptions = Array.isArray(exercise.options) && exercise.options.length > 0;
+        elements.options.hidden = !hasOptions;
+        elements.answerForm.hidden = hasOptions;
+        if (hasOptions) {
+            exercise.options.forEach(value => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'option-btn';
+                button.textContent = String(value);
+                button.addEventListener('click', () => checkAnswer(value));
+                elements.options.appendChild(button);
             });
-        });
+        } else {
+            elements.answerInput.focus();
+        }
+        lockAnswers(false);
     }
 
-    function renderDashboard() {
-        const student = Storage.getActiveStudent();
-        const worldObj = Storage.STRATEGIES.find(s => s.id === student.mundoActual) || Storage.STRATEGIES[0];
-        const worldMastery = student.dominio[student.mundoActual] || 0;
-        const lastResult = student.ultimaSesionCorrectas !== null
-            ? `${student.ultimaSesionCorrectas}/${student.ultimaSesionTotal} correctas`
-            : 'Sin sesiones aún';
+    function checkAnswer(answer) {
+        if (state.answered) return;
+        const cleanAnswer = String(answer).trim();
+        if (!cleanAnswer) {
+            elements.answerInput.focus();
+            return;
+        }
 
-        container.innerHTML = `
-            <div class="card dashboard-hero">
-                <h2>Hola, ${student.nombre}</h2>
-                <div class="stat-row">
-                    <div class="stat-box">
-                        <div class="label">Mundo actual</div>
-                        <div class="value">${worldObj.id}. ${worldObj.name}</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">Dominio del mundo</div>
-                        <div class="value">${worldMastery}%</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="label">Última sesión</div>
-                        <div class="value">${lastResult}</div>
-                    </div>
-                </div>
-                <button id="btn-start-practice" class="btn-primary" style="width:100%; font-size:1.5rem; padding:20px;">
-                    Continuar ▶
-                </button>
-            </div>
+        state.answered = true;
+        const correct = state.subject === 'lengua'
+            ? cleanAnswer.localeCompare(String(state.exercise.answer).trim(), 'es', {
+                sensitivity: 'accent',
+                usage: 'search'
+            }) === 0
+            : normalizeAnswer(cleanAnswer) === normalizeAnswer(state.exercise.answer);
+        if (correct) state.score += 1;
+        Storage.updateProgress(state.subject, state.categoryId, correct);
+        lockAnswers(true);
+        showFeedback(correct);
+    }
+
+    function showFeedback(correct) {
+        elements.feedback.hidden = false;
+        elements.feedback.classList.add(correct ? 'success' : 'error');
+        if (correct) {
+            elements.feedback.innerHTML = `
+                <h2>✅ ¡Correcto!</h2>
+                <p>${escapeHtml(state.exercise.paso2 || '¡Excelente trabajo!')}</p>
+            `;
+            state.timer = setTimeout(nextExercise, 700);
+            return;
+        }
+
+        elements.feedback.innerHTML = `
+            <h2>💡 Vamos a verlo</h2>
+            <p><strong>Paso 1:</strong> ${escapeHtml(state.exercise.paso1)}</p>
+            <p><strong>Paso 2:</strong> ${escapeHtml(state.exercise.paso2)}</p>
+            <p><strong>Respuesta:</strong> ${escapeHtml(String(state.exercise.answer))}</p>
+            <button id="btn-continue-exercise" class="action-btn primary" type="button">Continuar</button>
         `;
-
-        document.getElementById('btn-start-practice').addEventListener('click', () => {
-            sessionState = null;
-            navigate('entrenamiento');
-        });
+        document.getElementById('btn-continue-exercise').addEventListener('click', nextExercise);
     }
 
-    function startOrResumeSession() {
-        const student = Storage.getActiveStudent();
-        if (!sessionState) {
-            sessionState = {
-                questions: Adaptive.buildSessionQuestions(student),
-                currentIndex: 0,
-                correctCount: 0,
-                history: [],
-                responseTimesMs: [],
-                questionStartMs: 0,
-                awaitingNext: false,
-                startTime: Date.now()
-            };
-        }
-        renderQuestion();
-    }
-
-    function renderQuestion() {
-        const student = Storage.getActiveStudent();
-        const q = sessionState.questions[sessionState.currentIndex];
-        const strategyObj = Storage.STRATEGIES.find(s => s.id === q.strategyId);
-        const answeredCount = sessionState.history.length;
-        const accuracy = answeredCount > 0
-            ? Math.round((sessionState.correctCount / answeredCount) * 100)
-            : 100;
-
-        const showHint = Adaptive.shouldTriggerPreventiveHelp(sessionState.history, q.strategyId);
-
-        container.innerHTML = `
-            <div class="practice-layout">
-                <div class="card">
-                    <div class="question-meta">
-                        <span>Mundo ${strategyObj.id} · ${strategyObj.name}</span>
-                        <span>Pregunta ${sessionState.currentIndex + 1} de 20</span>
-                    </div>
-
-                    ${showHint ? `
-                        <div class="hint-banner">
-                            💡 Pista: ${q.paso1}
-                        </div>
-                    ` : ''}
-
-                    <div class="math-prompt">${q.prompt}</div>
-
-                    <input type="number" id="answer-input" class="answer-input" placeholder="?" autocomplete="off" min="0" inputmode="numeric" />
-
-                    <button id="btn-check" class="btn-primary" style="width:100%;">Comprobar</button>
-
-                    <div id="feedback-area"></div>
-
-                    <div style="margin-top:18px; text-align:right; color:var(--text-muted); font-weight:600;">
-                        Precisión sesión: ${accuracy}%
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="keypad">
-                        ${[7,8,9,4,5,6,1,2,3].map(n => `<button class="key-btn" data-key="${n}">${n}</button>`).join('')}
-                        <button class="key-btn" data-key="clear">C</button>
-                        <button class="key-btn" data-key="0">0</button>
-                        <button class="key-btn" data-key="enter" style="background:var(--primary); color:white;">⏎</button>
-                    </div>
-                </div>
-            </div>
+    function finishSession() {
+        state.answered = true;
+        elements.progress.textContent = 'Sesión completada';
+        elements.practiceCategory.textContent = state.categoryName;
+        elements.prompt.textContent = '🏆 ¡Sesión completada!';
+        elements.options.hidden = true;
+        elements.answerForm.hidden = true;
+        elements.feedback.hidden = false;
+        elements.feedback.className = 'feedback-box success';
+        elements.feedback.innerHTML = `
+            <h2>¡Buen trabajo, ${escapeHtml(Storage.getData().name)}!</h2>
+            <p>Has acertado <strong>${state.score} de ${SESSION_LENGTH}</strong> ejercicios.</p>
+            <button id="btn-finish-session" class="action-btn primary" type="button">Elegir otra categoría</button>
         `;
-
-        const input = document.getElementById('answer-input');
-        const checkBtn = document.getElementById('btn-check');
-        sessionState.questionStartMs = nowMs();
-        input.focus();
-
-        function submitAnswer() {
-            if (sessionState.awaitingNext) return;
-            const val = parseInt(input.value, 10);
-            if (isNaN(val) || val < 0) return;
-
-            const elapsedMs = Math.max(0, nowMs() - sessionState.questionStartMs);
-            sessionState.responseTimesMs.push(elapsedMs);
-
-            sessionState.awaitingNext = true;
-            const isCorrect = val === q.answer;
-            if (isCorrect) sessionState.correctCount++;
-
-            sessionState.history.push({ strategyId: q.strategyId, correct: isCorrect });
-            Adaptive.registerAnswer(student, q, isCorrect);
-            Storage.updateStudent(student);
-
-            const feedbackArea = document.getElementById('feedback-area');
-            checkBtn.style.display = 'none';
-            input.disabled = true;
-
-            if (isCorrect) {
-                feedbackArea.innerHTML = `<div class="feedback-box feedback-success">✅ Correcto</div>`;
-                setTimeout(nextQuestion, 700);
-            } else {
-                feedbackArea.innerHTML = `
-                    <div class="feedback-box feedback-error">
-                        <div style="font-size:1.3rem; font-weight:800; margin-bottom:10px;">❌ Vamos a verlo</div>
-                        <div class="step-box">${q.paso1}</div>
-                        <div class="step-box">${q.paso2}</div>
-                        <button id="btn-continue-err" class="btn-primary" style="margin-top:12px; width:100%;">Continuar</button>
-                    </div>
-                `;
-                document.getElementById('btn-continue-err').addEventListener('click', nextQuestion);
-                document.getElementById('btn-continue-err').focus();
-            }
-        }
-
-        function nextQuestion() {
-            sessionState.awaitingNext = false;
-            sessionState.currentIndex++;
-            if (sessionState.currentIndex >= 20) {
-                finishSession();
-            } else {
-                renderQuestion();
-            }
-        }
-
-        checkBtn.addEventListener('click', submitAnswer);
-        input.addEventListener('keydown', (e) => {
-            if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
-                e.preventDefault();
-                return;
-            }
-            if (e.key === 'Enter') submitAnswer();
-        });
-        input.addEventListener('wheel', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-        input.addEventListener('input', () => {
-            const sanitizedValue = input.value.replace(/[^0-9]/g, '');
-            if (sanitizedValue === '') {
-                input.value = '';
-                return;
-            }
-            const numericValue = parseInt(sanitizedValue, 10);
-            input.value = Number.isNaN(numericValue) ? '' : Math.max(0, numericValue).toString();
-        });
-
-        container.querySelectorAll('.key-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (sessionState.awaitingNext) return;
-                const key = btn.dataset.key;
-                if (key === 'clear') input.value = '';
-                else if (key === 'enter') submitAnswer();
-                else input.value += key;
-                input.focus();
-            });
+        document.getElementById('btn-finish-session').addEventListener('click', () => {
+            renderCategories();
+            showView('categories', state.subject);
         });
     }
 
-    async function flushPendingSyncQueue() {
-        try {
-            await Storage.flushSyncQueue();
-        } catch (err) {
-            console.warn('No se pudo vaciar la cola de sincronizacion:', err);
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderStorySelector() {
+        const selector = document.getElementById('mystery-story-selector');
+        selector.replaceChildren();
+        LanguageGenerator.getMysteryStoriesList().forEach(story => {
+            const option = document.createElement('option');
+            option.value = String(story.id);
+            option.textContent = story.title;
+            option.selected = story.id === state.mysteryStoryId;
+            selector.appendChild(option);
+        });
+    }
+
+    function openMystery() {
+        renderStorySelector();
+        renderMystery();
+        showView('mystery', 'mystery');
+    }
+
+    function renderMystery() {
+        const progress = Storage.getData().misterioProgreso[state.mysteryStoryId] || 0;
+        const paragraph = LanguageGenerator.getMysteryParagraph(state.mysteryStoryId, progress);
+        document.getElementById('mystery-title').textContent = paragraph.storyTitle;
+        document.getElementById('mystery-step').textContent = `Párrafo ${paragraph.paragraphNumber} de ${paragraph.totalParagraphs}`;
+        document.getElementById('mystery-text').textContent = paragraph.text;
+        document.getElementById('mystery-prompt').textContent = paragraph.prompt;
+        const feedback = document.getElementById('mystery-feedback');
+        feedback.hidden = true;
+        const container = document.getElementById('mystery-options');
+        container.replaceChildren();
+        paragraph.options.forEach(optionValue => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'option-btn';
+            button.textContent = optionValue;
+            button.addEventListener('click', () => answerMystery(optionValue, paragraph, progress));
+            container.appendChild(button);
+        });
+    }
+
+    function answerMystery(answer, paragraph, currentIndex) {
+        const correct = normalizeAnswer(answer) === normalizeAnswer(paragraph.answer);
+        const feedback = document.getElementById('mystery-feedback');
+        feedback.hidden = false;
+        feedback.className = `feedback-box ${correct ? 'success' : 'error'}`;
+        if (!correct) {
+            feedback.innerHTML = `
+                <h2>🔎 Atiende al detalle</h2>
+                <p>${escapeHtml(paragraph.paso1)}</p>
+                <button id="btn-retry-mystery" class="action-btn primary" type="button">Releer y repetir</button>
+            `;
+            document.getElementById('btn-retry-mystery').addEventListener('click', renderMystery);
+            return;
+        }
+
+        const nextIndex = currentIndex + 1;
+        Storage.updateMysteryProgress(state.mysteryStoryId, nextIndex);
+        const completed = nextIndex >= paragraph.totalParagraphs;
+        feedback.innerHTML = completed
+            ? `<h2>🏆 ¡Misterio resuelto!</h2><p>${escapeHtml(paragraph.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Volver al menú</button>`
+            : `<h2>✨ ¡Pista encontrada!</h2><p>${escapeHtml(paragraph.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Siguiente párrafo</button>`;
+        document.getElementById('btn-mystery-continue').addEventListener('click', () => completed ? showView('hub') : renderMystery());
+    }
+
+    function showNamePrompt() {
+        const data = Storage.getData();
+        const value = prompt('Escribe el nombre del alumno (máximo 20 caracteres):', data.name);
+        if (value && value.trim()) {
+            Storage.setStudentName(value);
+            renderIdentity();
         }
     }
 
-    async function finishSession() {
-        const student = Storage.getActiveStudent();
-        const tiempoMedioSeg = Adaptive.getAverageResponseTimeSec(sessionState.responseTimesMs);
-
-        student.ultimaSesionCorrectas = sessionState.correctCount;
-        student.ultimaSesionTotal = 20;
-        Storage.updateStudent(student);
-
-        const syncResult = await Storage.syncToCloud({
-            alumno: Storage.normalizeName(student.nombre),
-            mundoActual: student.mundoActual,
-            aciertos: sessionState.correctCount,
-            dominio: student.dominio,
-            tiempoMedioSeg,
-            fecha: new Date().toISOString()
-        });
-
-        if (syncResult && syncResult.ok) {
-            await flushPendingSyncQueue();
+    function openTeacherPanel() {
+        const pin = prompt('Introduce el PIN de Profesor:');
+        if (pin !== Storage.PIN_SECRET) {
+            if (pin !== null) alert('PIN incorrecto.');
+            return;
         }
-
-        const score = sessionState.correctCount;
-        sessionState = null;
-
-        container.innerHTML = `
-            <div class="card dashboard-hero">
-                <h2>🎉 ¡Sesión completada!</h2>
-                <div class="math-prompt" style="color:var(--primary);">${score} / 20</div>
-                <p style="font-size:1.2rem; margin-bottom:24px;">Has terminado tu entrenamiento de hoy.</p>
-                <button id="btn-back-home" class="btn-primary">Volver a Inicio</button>
-            </div>
-        `;
-
-        document.getElementById('btn-back-home').addEventListener('click', () => navigate('inicio'));
+        renderTeacherPanel();
+        showView('teacher', 'neutral');
     }
 
-    function renderProgress() {
-        const student = Storage.getActiveStudent();
-        container.innerHTML = `
-            <div class="card">
-                <h2 style="margin-bottom:20px;">Dominio por estrategia</h2>
-                ${Storage.STRATEGIES.map(s => {
-                    const pct = student.dominio[s.id] || 0;
-                    const label = Adaptive.getMasteryLabel(pct);
-                    return `
-                        <div class="strategy-row">
-                            <div class="strategy-header">
-                                <span>${s.id}.${s.name}</span>
-                                <span>${pct}\% ·${label}</span>
-                            </div>
-                            <div class="progress-track">
-                                <div class="progress-fill" style="width:${pct}%;"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    }
-
-    function renderAchievements() {
-        const student = Storage.getActiveStudent();
-
-        container.innerHTML = `
-            <div class="card">
-                <h2 style="margin-bottom:20px;">🏅 Medallas de la Hermandad del Dragón</h2>
-                <div class="achievements-grid">
-                    ${Storage.STRATEGIES.map(strategy => {
-                        const pct = student.dominio[strategy.id] || 0;
-                        let medalIcon = '🥚';
-                        let medalClass = 'medal-egg';
-                        let medalTitle = 'Huevo de Dragón';
-                        let medalDescription = 'Sigue practicando (Menos de 60%)';
-
-                        if (pct >= 95) {
-                            medalIcon = '🥇';
-                            medalClass = 'medal-gold';
-                            medalTitle = 'Maestro Dragón';
-                            medalDescription = '¡Dominio perfecto!';
-                        } else if (pct >= 80) {
-                            medalIcon = '🥈';
-                            medalClass = 'medal-silver';
-                            medalTitle = 'Guerrero Dragón';
-                            medalDescription = 'Nivel Competente (80% o más)';
-                        } else if (pct >= 60) {
-                            medalIcon = '🥉';
-                            medalClass = 'medal-bronze';
-                            medalTitle = 'Aprendiz Dragón';
-                            medalDescription = 'En desarrollo (60% o más)';
-                        }
-
-                        return `
-                            <div class="achievement-card ${medalClass}">
-                                <div style="font-size:3.5rem; line-height:1; text-align:center;">${medalIcon}</div>
-                                <h3 style="margin-top:12px; text-align:center;">Mundo ${strategy.id}: ${strategy.name}</h3>
-                                <div class="medal-title">${medalTitle}</div>
-                                <div style="margin-top:6px; text-align:center; font-weight:700;">${pct}%</div>
-                                <p class="subtitle" style="margin-top:8px; text-align:center;">${medalDescription}</p>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
+    function totalProgress(progress) {
+        return Object.values(progress).reduce((total, record) => {
+            total.attempts += Number(record.intentos) || 0;
+            total.correct += Number(record.aciertos) || 0;
+            return total;
+        }, { attempts: 0, correct: 0 });
     }
 
     function renderTeacherPanel() {
-        const pin = prompt('Introduce el PIN de profesor (por defecto: 1234):');
-        if (pin !== '1234') {
-            navigate('inicio');
-            return;
-        }
-        currentView = 'profesor';
-        updateHeader();
-
-        const db = Storage.getDatabase();
-        const students = Object.values(db.students);
-
-        container.innerHTML = `
-            <div class="card" style="overflow-x:auto;">
-                <h2>👨‍🏫 Panel del Profesor · 3ºB Hermandad del Dragon</h2>
-                <p class="subtitle" style="margin-bottom:16px;">Haz clic en el nombre de un alumno para renombrarlo o en su Mundo para cambiarlo de nivel (1 a 8).</p>
-                <table class="teacher-table">
-                    <thead>
-                        <tr>
-                            <th>Alumno</th>
-                            <th>Mundo</th>
-                            <th>Última</th>
-                            ${Storage.STRATEGIES.map(s => `<th>E${s.id}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${students.map(st => `
-                            <tr>
-                                <td>
-                                    <button class="btn-outline btn-rename" data-id="${st.id}" style="width:100%;">
-                                        ✏️ ${st.nombre}
-                                    </button>
-                                </td>
-                                <td>
-                                    <button class="btn-secondary btn-world" data-id="${st.id}" title="Cambiar mundo">
-                                        Mundo ${st.mundoActual} 🔄
-                                    </button>
-                                </td>
-                                <td>${st.ultimaSesionCorrectas !== null ? st.ultimaSesionCorrectas + '/20' : '-'}</td>
-                                ${Storage.STRATEGIES.map(s => `<td>${st.dominio[s.id] || 0}%</td>`).join('')}
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+        const data = Storage.getData();
+        document.getElementById('teacher-student-name').value = data.name;
+        document.getElementById('teacher-toggle-rec').checked = data.modoRecuperacion;
+        document.getElementById('teacher-rec-status').textContent = data.modoRecuperacion ? 'Refuerzo 2º activo' : 'Estándar 3º';
+        const math = totalProgress(data.progresoMath);
+        const language = totalProgress(data.progresoLengua);
+        const attempts = math.attempts + language.attempts;
+        const correct = math.correct + language.correct;
+        const percentage = attempts ? Math.round(correct / attempts * 100) : 0;
+        document.getElementById('teacher-stats-text').innerHTML = `
+            <div class="stats-line">
+                <span class="stat-pill">Ejercicios: ${attempts}</span>
+                <span class="stat-pill">Aciertos: ${correct}</span>
+                <span class="stat-pill">Dominio: ${percentage}%</span>
+                <span class="stat-pill">Matemáticas: ${math.attempts}</span>
+                <span class="stat-pill">Lengua: ${language.attempts}</span>
             </div>
         `;
-
-        container.querySelectorAll('.btn-rename').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.id;
-                const current = db.students[id].nombre;
-                const nuevo = prompt('Nuevo nombre para el alumno:', current);
-                if (nuevo) {
-                    Storage.renameStudent(id, nuevo);
-                    renderTeacherPanel();
-                }
-            });
-        });
-
-        container.querySelectorAll('.btn-world').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.id;
-                const student = db.students[id];
-                const nuevoMundo = parseInt(prompt(`¿A qué mundo (1 a 8) quieres mover a ${student.nombre}?`, student.mundoActual), 10);
-                if (nuevoMundo >= 1 && nuevoMundo <= 8) {
-                    student.mundoActual = nuevoMundo;
-                    if (!student.dominio[nuevoMundo]) student.dominio[nuevoMundo] = 50;
-                    Storage.updateStudent(student);
-                    renderTeacherPanel();
-                }
-            });
-        });
     }
 
-    // Eventos globales
-    navButtons.forEach(btn => {
-        btn.addEventListener('click', () => navigate(btn.dataset.view));
+    document.getElementById('name-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const name = elements.nameInput.value.trim();
+        if (!name) return;
+        Storage.setStudentName(name);
+        renderIdentity();
+        showView('hub');
     });
-
-    document.getElementById('btn-change-student').addEventListener('click', () => {
-        Storage.setActiveStudentId(null);
-        renderStudentSelector();
+    document.querySelectorAll('[data-subject]').forEach(button => {
+        button.addEventListener('click', () => openSubject(button.dataset.subject));
     });
-
-    document.getElementById('btn-teacher-panel').addEventListener('click', () => {
+    document.getElementById('btn-home').addEventListener('click', () => {
+        renderIdentity();
+        showView(Storage.getData().name ? 'hub' : 'name');
+    });
+    elements.editName.addEventListener('click', showNamePrompt);
+    document.getElementById('btn-category-back').addEventListener('click', () => showView('hub'));
+    document.getElementById('btn-practice-back').addEventListener('click', () => {
+        renderCategories();
+        showView('categories', state.subject);
+    });
+    elements.answerForm.addEventListener('submit', event => {
+        event.preventDefault();
+        checkAnswer(elements.answerInput.value);
+    });
+    document.getElementById('btn-mystery-back').addEventListener('click', () => showView('hub'));
+    document.getElementById('mystery-story-selector').addEventListener('change', event => {
+        state.mysteryStoryId = Number(event.target.value);
+        renderMystery();
+    });
+    document.getElementById('btn-teacher-panel').addEventListener('click', openTeacherPanel);
+    document.getElementById('btn-close-teacher').addEventListener('click', () => showView(Storage.getData().name ? 'hub' : 'name'));
+    document.getElementById('btn-export-csv').addEventListener('click', () => Storage.exportCSV());
+    document.getElementById('btn-save-name').addEventListener('click', () => {
+        const name = document.getElementById('teacher-student-name').value.trim();
+        if (!name) return;
+        Storage.setStudentName(name);
+        renderIdentity();
+        alert('Nombre guardado.');
+    });
+    document.getElementById('teacher-toggle-rec').addEventListener('change', event => {
+        Storage.setRecuperacion(event.target.checked);
         renderTeacherPanel();
+        renderIdentity();
+    });
+    document.getElementById('btn-reset-data').addEventListener('click', () => {
+        if (!confirm('¿Seguro que quieres borrar el nombre y todo el progreso de este portátil?')) return;
+        Storage.resetData();
+        renderIdentity();
+        elements.nameInput.value = '';
+        showView('name');
     });
 
-    // Arranque inicial
-    flushPendingSyncQueue();
-    navigate('inicio');
+    start();
 });

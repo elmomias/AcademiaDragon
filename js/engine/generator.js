@@ -355,7 +355,6 @@ window.DragonApp = window.DragonApp || {};
         }
     }
 
-    window.DragonApp.Generator = {
-        generateByStrategy
-    };
+    window.DragonApp.Generator = { generateByStrategy };
+    window.DragonApp.GeneratorMath = { generateByStrategy };
 })();
