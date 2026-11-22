@@ -4,14 +4,31 @@ window.DragonApp = window.DragonApp || {};
     function rand(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+    function phase(questionNumber) {
+        const q = Math.min(20, Math.max(1, Number(questionNumber) || 1));
+        const advanced = q > 10;
+        return {
+            advanced,
+            progress: advanced ? (q - 11) / 9 : (q - 1) / 9
+        };
+    }
+    function difficultyNumber(questionNumber, easyMin, easyMax, advancedMin, advancedMax) {
+        const level = phase(questionNumber);
+        const min = level.advanced ? advancedMin : easyMin;
+        const maxStart = level.advanced ? advancedMin : easyMin;
+        const maxEnd = level.advanced ? advancedMax : easyMax;
+        const upper = Math.round(maxStart + (maxEnd - maxStart) * level.progress);
+        return rand(min, Math.max(min, upper));
+    }
     const shuffle = values => [...values].sort(() => Math.random() - 0.5);
-    const options = answer => shuffle([answer, answer + 10, Math.max(0, answer - 10)].filter((v, i, a) => a.indexOf(v) === i));
+    const answerOptions = answer => shuffle([answer, answer + 10, Math.max(0, answer - 10)].filter((v, i, a) => a.indexOf(v) === i));
 
     function generateByStrategy(strategyId, options = {}) {
-        const questionNumber = Number(options.questionNumber);
+        const questionNumber = Math.min(20, Math.max(1, Number(options.questionNumber) || 1));
+        const level = phase(questionNumber);
         switch (Number(strategyId)) {
             case 1: {
-                const variant = rand(1, 6);
+                const variant = level.advanced ? rand(3, 6) : rand(1, 2);
                 if (variant <= 2) {
                     const known = rand(1, 9);
                     const answer = 10 - known;
@@ -56,15 +73,15 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 2: {
-                const tens = rand(2, 8) * 10;
-                const units = rand(3, 9);
+                const tens = difficultyNumber(questionNumber, 1, 3, 4, 9) * 10;
+                const units = difficultyNumber(questionNumber, 1, 4, 5, 9);
                 const a = tens + units;
                 const toTen = 10 - units;
-                const b = rand(toTen + 1, 9);
+                const b = rand(toTen + 1, level.advanced ? 18 : 9);
                 const remainder = b - toTen;
                 const total = a + b;
                 const nextTen = tens + 10;
-                const variant = rand(1, 3);
+                const variant = level.advanced ? rand(2, 3) : 1;
                 const prompt = variant === 1 ? `${a} + ${b}` : variant === 2 ? `${a} + ${b} = ${nextTen} + ?` : `${a} + ? = ${total}`;
                 return {
                     strategyId: 2,
@@ -76,10 +93,9 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 3: {
-                const pool = [6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 24, 25, 26, 35, 45];
-                const n = pool[rand(0, pool.length - 1)];
+                const n = difficultyNumber(questionNumber, 1, 10, 12, 49);
                 const double = n * 2;
-                const variant = rand(1, 3);
+                const variant = level.advanced ? rand(2, 3) : rand(1, 2);
                 return {
                     strategyId: 3,
                     prompt: variant === 1 ? `${n} + ${n}` : variant === 2 ? `? + ? = ${double}` : `${n} + ? = ${double}`,
@@ -90,13 +106,13 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 4: {
-                const tens = rand(3, 9) * 10;
-                const units = rand(1, 7);
+                const tens = difficultyNumber(questionNumber, 1, 3, 4, 9) * 10;
+                const units = difficultyNumber(questionNumber, 1, 4, 5, 7);
                 const minuend = tens + units;
-                const subtrahend = rand(units + 1, 9);
+                const subtrahend = rand(units + 1, level.advanced ? 18 : Math.min(9, units + 4));
                 const remainder = subtrahend - units;
                 const result = minuend - subtrahend;
-                const variant = rand(1, 3);
+                const variant = level.advanced ? rand(2, 3) : 1;
                 return {
                     strategyId: 4,
                     prompt: variant === 1 ? `${minuend} - ${subtrahend}` : variant === 2 ? `${minuend} - ${subtrahend} = ${tens} - ?` : `${minuend} - ? = ${result}`,
@@ -107,11 +123,11 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 5: {
-                const n = rand(6, 25);
+                const n = difficultyNumber(questionNumber, 1, 5, 6, 49);
                 const next = n + 1;
                 const double = n * 2;
                 const total = double + 1;
-                const variant = rand(1, 3);
+                const variant = level.advanced ? rand(2, 3) : 1;
                 const firstBig = Math.random() < 0.5;
                 return {
                     strategyId: 5,
@@ -123,18 +139,18 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 6: {
-                const n = rand(14, 88);
-                const add = Math.random() < 0.6;
-                const bridge = rand(1, 3) === 3;
+                const n = difficultyNumber(questionNumber, 1, 20, 40, 189);
+                const add = level.advanced ? Math.random() < 0.6 : true;
+                const bridge = level.advanced && rand(1, 3) === 3;
                 if (add) {
                     return { strategyId: 6, prompt: bridge ? `${n} + 9 = ${n + 10} - ?` : `${n} + 9`, answer: bridge ? 1 : n + 9, options: null, paso1: `${n} + 10 = ${n + 10}.`, paso2: `${n + 10} - 1 = ${n + 9}.` };
                 }
                 return { strategyId: 6, prompt: bridge ? `${n} - 9 = ${n - 10} + ?` : `${n} - 9`, answer: bridge ? 1 : n - 9, options: null, paso1: `${n} - 10 = ${n - 10}.`, paso2: `${n - 10} + 1 = ${n - 9}.` };
             }
             case 7: {
-                const n = rand(15, 85);
-                const add = Math.random() < 0.6;
-                const bridge = rand(1, 3) === 3;
+                const n = difficultyNumber(questionNumber, 1, 20, 40, 189);
+                const add = level.advanced ? Math.random() < 0.6 : true;
+                const bridge = level.advanced && rand(1, 3) === 3;
                 return {
                     strategyId: 7,
                     prompt: add
@@ -147,9 +163,9 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 8: {
-                const variant = rand(1, 4);
+                const variant = level.advanced ? rand(2, 4) : 1;
                 if (variant <= 2) {
-                    const a = rand(1, 9) * 10;
+                    const a = difficultyNumber(questionNumber, 1, 5, 6, 9) * 10;
                     if (variant === 2) {
                         const b = rand(12, 88);
                         const answer = 100 - b;
@@ -163,57 +179,63 @@ window.DragonApp = window.DragonApp || {};
                 return { strategyId: 8, prompt: variant === 3 ? `${a} + ${b} + ? = 100` : `? + ${a} + ${b} = 100`, answer, options: null, paso1: `Agrupamos: ${a} + ${b} = ${a + b}.`, paso2: `Hasta 100 faltan ${answer}.` };
             }
             case 9: {
-                let n = rand(11, 98);
-                while (n % 10 === 0 || n % 10 === 5) n = rand(11, 98);
+                let n = difficultyNumber(questionNumber, 11, 49, 50, 999);
+                while (n % 10 === 0 || n % 10 === 5) {
+                    n = difficultyNumber(questionNumber, 11, 49, 50, 999);
+                }
                 const answer = Math.round(n / 10) * 10;
                 const choices = shuffle([answer, answer - 10, answer + 10].filter(v => v >= 0));
                 return { strategyId: 9, prompt: `Aproxima ${n} a la decena más cercana.`, answer, options: choices, paso1: `Observa las unidades de ${n}.`, paso2: `${n} está más cerca de ${answer}.` };
             }
             case 10: {
-                const aTens = rand(2, 8);
-                const aUnits = rand(5, 9);
-                const bTens = rand(1, 3);
-                const bUnits = rand(11 - aUnits, 9);
+                const aTens = difficultyNumber(questionNumber, 1, 3, 4, 12);
+                const aUnits = difficultyNumber(questionNumber, 1, 4, 5, 9);
+                const bTens = difficultyNumber(questionNumber, 1, 2, 2, 9);
+                const bUnits = level.advanced
+                    ? rand(11 - aUnits, 9)
+                    : rand(0, 9 - aUnits);
                 const a = aTens * 10 + aUnits;
                 const b = bTens * 10 + bUnits;
                 const answer = a + b;
-                return { strategyId: 10, prompt: `${a} + ${b}`, answer, options: options(answer), paso1: `${aUnits} + ${bUnits} = ${aUnits + bUnits}.`, paso2: `Sumando decenas y unidades obtenemos ${answer}.` };
+                return { strategyId: 10, prompt: `${a} + ${b}`, answer, options: answerOptions(answer), paso1: `${aUnits} + ${bUnits} = ${aUnits + bUnits}.`, paso2: `Sumando decenas y unidades obtenemos ${answer}.` };
             }
             case 11: {
-                const tens = rand(3, 9);
-                const units = rand(0, 3);
+                const tens = difficultyNumber(questionNumber, 2, 4, 5, 19);
+                const units = difficultyNumber(questionNumber, 0, 2, 0, 3);
                 const subTens = rand(1, tens - 1);
                 const subUnits = rand(units + 2, 9);
                 const a = tens * 10 + units;
                 const b = subTens * 10 + subUnits;
                 const answer = a - b;
-                return { strategyId: 11, prompt: `${a} - ${b}`, answer, options: options(answer), paso1: `Pedimos una decena: ${units + 10} - ${subUnits} = ${units + 10 - subUnits}.`, paso2: `La resta completa es ${answer}.` };
+                return { strategyId: 11, prompt: `${a} - ${b}`, answer, options: answerOptions(answer), paso1: `Pedimos una decena: ${units + 10} - ${subUnits} = ${units + 10 - subUnits}.`, paso2: `La resta completa es ${answer}.` };
             }
             case 12: {
-                const base = rand(2, 9);
-                const factor = [10, 100, 1000][rand(0, 2)];
+                const base = difficultyNumber(questionNumber, 2, 9, 10, 99);
+                const factor = level.advanced
+                    ? [100, 1000][rand(0, 1)]
+                    : 10;
                 return { strategyId: 12, prompt: `${base} × ${factor}`, answer: base * factor, options: shuffle([base * factor, base * factor * 10, base * (factor / 10)]), paso1: `Multiplicamos ${base} por 1.`, paso2: `Añadimos los ceros de ${factor}: ${base * factor}.` };
             }
             case 101: {
-                const hundreds = rand(1, 9);
-                const tens = rand(0, 9);
-                const units = rand(0, 9);
+                const hundreds = difficultyNumber(questionNumber, 1, 3, 4, 9);
+                const tens = difficultyNumber(questionNumber, 0, 4, 5, 9);
+                const units = difficultyNumber(questionNumber, 0, 4, 5, 9);
                 const total = hundreds * 100 + tens * 10 + units;
                 const answer = `${hundreds}C + ${tens}D + ${units}U`;
                 return { strategyId: 101, prompt: `Descompón ${total} en centenas, decenas y unidades.`, answer, options: shuffle([answer, `${tens}C + ${hundreds}D + ${units}U`, `${hundreds}C + ${units}D + ${tens}U`]), paso1: `${total} tiene ${hundreds} centenas, ${tens} decenas y ${units} unidades.`, paso2: `${total} = ${hundreds * 100} + ${tens * 10} + ${units}.` };
             }
             case 102: {
-                const step = [2, 5, 10][rand(0, 2)];
-                const start = rand(1, 5) * step;
+                const step = level.advanced ? [3, 4, 6, 7, 9][rand(0, 4)] : [2, 5, 10][rand(0, 2)];
+                const start = difficultyNumber(questionNumber, 1, 5, 6, 30) * step;
                 return { strategyId: 102, prompt: `Completa: ${start}, ${start + step}, ${start + step * 2}, ?`, answer: start + step * 3, options: null, paso1: `La serie aumenta de ${step} en ${step}.`, paso2: `${start + step * 2} + ${step} = ${start + step * 3}.` };
             }
             case 13: {
-                const thousands = rand(1, 9);
-                const hundreds = rand(0, 9);
-                const tens = rand(0, 9);
-                const units = rand(0, 9);
+                const thousands = difficultyNumber(questionNumber, 1, 3, 4, 9);
+                const hundreds = difficultyNumber(questionNumber, 0, 2, 3, 9);
+                const tens = difficultyNumber(questionNumber, 0, 3, 4, 9);
+                const units = difficultyNumber(questionNumber, 0, 3, 4, 9);
                 const number = thousands * 1000 + hundreds * 100 + tens * 10 + units;
-                const variant = rand(1, 4);
+                const variant = level.advanced ? rand(3, 4) : rand(1, 2);
                 if (variant === 1) {
                     const answer = Math.round(number / 100) * 100;
                     return { strategyId: 13, prompt: `Redondea ${number} a la centena más cercana.`, answer, options: shuffle([answer, answer - 100, answer + 100].filter(value => value >= 0)), paso1: `Observamos las decenas y unidades de ${number}.`, paso2: `${number} se aproxima a ${answer}.` };
@@ -232,18 +254,21 @@ window.DragonApp = window.DragonApp || {};
                 return { strategyId: 13, prompt: `Completa la serie: ${number}, ${number + step}, ${number + step * 2}, ?`, answer: number + step * 3, options: null, paso1: `La serie avanza de ${step} en ${step}.`, paso2: `${number + step * 2} + ${step} = ${number + step * 3}.` };
             }
             case 14: {
-                const variant = rand(1, 3);
+                const variant = level.advanced ? rand(1, 3) : 1;
                 if (variant === 1) {
-                    const a = rand(1200, 4800);
-                    const b = rand(1100, 4500);
+                    const a = difficultyNumber(questionNumber, 1000, 2500, 3200, 7800);
+                    const b = Math.min(
+                        difficultyNumber(questionNumber, 100, 900, 1100, 4500),
+                        9999 - a
+                    );
                     const answer = a + b;
-                    return { strategyId: 14, prompt: `${a} + ${b}`, answer, options: options(answer), paso1: `Sumamos primero unidades y decenas, después centenas y millares.`, paso2: `La suma completa es ${answer}.` };
+                    return { strategyId: 14, prompt: `${a} + ${b}`, answer, options: answerOptions(answer), paso1: `Sumamos primero unidades y decenas, después centenas y millares.`, paso2: `La suma completa es ${answer}.` };
                 }
                 if (variant === 2) {
                     const a = rand(3000, 8900);
                     const b = rand(1000, a - 500);
                     const answer = a - b;
-                    return { strategyId: 14, prompt: `${a} - ${b}`, answer, options: options(answer), paso1: `Restamos las unidades, decenas, centenas y unidades de millar.`, paso2: `La diferencia es ${answer}.` };
+                    return { strategyId: 14, prompt: `${a} - ${b}`, answer, options: answerOptions(answer), paso1: `Restamos las unidades, decenas, centenas y unidades de millar.`, paso2: `La diferencia es ${answer}.` };
                 }
                 const total = rand(2500, 8000);
                 const known = rand(500, total - 500);
@@ -251,7 +276,7 @@ window.DragonApp = window.DragonApp || {};
                 return { strategyId: 14, prompt: `${known} + ? = ${total}`, answer, options: null, paso1: `Restamos la parte conocida al resultado.`, paso2: `${total} - ${known} = ${answer}.` };
             }
             case 15: {
-                const variant = rand(1, 4);
+                const variant = level.advanced ? rand(3, 4) : rand(1, 2);
                 if (variant === 1) {
                     const angle = rand(1, 179);
                     const answer = angle === 90 ? 'recto' : angle < 90 ? 'agudo' : 'obtuso';
@@ -267,12 +292,12 @@ window.DragonApp = window.DragonApp || {};
                 return { strategyId: 15, prompt: `¿Cuántos ángulos rectos forman dos rectas perpendiculares? Escribe solo el número.`, answer, options: null, paso1: 'Las perpendiculares se cruzan formando cuatro regiones iguales.', paso2: 'Forman 4 ángulos rectos.' };
             }
             case 16: {
-                const factor = rand(2, 9);
-                const times = rand(2, 9);
-                const variant = rand(1, 3);
+                const factor = level.advanced ? difficultyNumber(questionNumber, 2, 5, 6, 12) : rand(2, 5);
+                const times = level.advanced ? difficultyNumber(questionNumber, 2, 5, 6, 12) : rand(2, 5);
+                const variant = level.advanced ? rand(2, 3) : 1;
                 if (variant === 1) {
                     const answer = factor * times;
-                    return { strategyId: 16, prompt: `${factor} × ${times}`, answer, options: options(answer), paso1: `Es una suma de ${times} grupos de ${factor}.`, paso2: `${factor} × ${times} = ${answer}.` };
+                    return { strategyId: 16, prompt: `${factor} × ${times}`, answer, options: answerOptions(answer), paso1: `Es una suma de ${times} grupos de ${factor}.`, paso2: `${factor} × ${times} = ${answer}.` };
                 }
                 if (variant === 2) {
                     const answer = factor;
@@ -283,9 +308,9 @@ window.DragonApp = window.DragonApp || {};
                 return { strategyId: 16, prompt: `Transforma esta suma en multiplicación: ${answer}`, answer: `${times} × ${factor}`, options: shuffle([`${times} × ${factor}`, `${factor} × ${times + 1}`, `${times + 1} × ${factor}`]), paso1: `El número ${factor} aparece ${times} veces.`, paso2: `${answer} = ${times} × ${factor}.` };
             }
             case 301: {
-                const base = 900 + rand(0, 40);
-                const ordinal = rand(11, 20);
-                if (questionNumber % 2 === 0) {
+                const base = difficultyNumber(questionNumber, 10, 90, 900, 990);
+                const ordinal = difficultyNumber(questionNumber, 1, 10, 11, 20);
+                if (level.advanced && questionNumber % 2 === 0) {
                     const answer = ordinal - 1;
                     return {
                         strategyId: 301,
@@ -306,11 +331,11 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 302: {
-                const hundreds = rand(1, 9);
-                const tens = rand(1, 9);
-                const units = rand(0, 9);
+                const hundreds = difficultyNumber(questionNumber, 1, 3, 4, 9);
+                const tens = difficultyNumber(questionNumber, 0, 3, 4, 9);
+                const units = difficultyNumber(questionNumber, 0, 4, 5, 9);
                 const number = hundreds * 100 + tens * 10 + units;
-                if (questionNumber % 3 === 0) {
+                if (level.advanced && questionNumber % 3 === 0) {
                     const answer = Math.round(number / 10) * 10;
                     return {
                         strategyId: 302,
@@ -320,7 +345,7 @@ window.DragonApp = window.DragonApp || {};
                         paso2: `${number} se redondea a ${answer}.`
                     };
                 }
-                if (questionNumber % 3 === 1) {
+                if (!level.advanced || questionNumber % 3 === 1) {
                     const answer = hundreds;
                     return {
                         strategyId: 302,
@@ -340,7 +365,7 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 303: {
-                if (questionNumber % 3 === 0) {
+                if (level.advanced && questionNumber % 3 === 0) {
                     const hundreds = rand(2, 9);
                     const tens = rand(1, 9);
                     const units = rand(0, 3);
@@ -357,9 +382,9 @@ window.DragonApp = window.DragonApp || {};
                         paso2: `${minuend} - ${subtrahend} = ${answer}.`
                     };
                 }
-                const a = rand(20, 99);
-                const b = rand(10, 99);
-                const c = rand(1, 9);
+                const a = difficultyNumber(questionNumber, 10, 30, 120, 399);
+                const b = difficultyNumber(questionNumber, 1, 20, 80, 299);
+                const c = difficultyNumber(questionNumber, 1, 9, 10, 99);
                 const answer = a + b + c;
                 return {
                     strategyId: 303,
@@ -370,11 +395,12 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 304: {
-                const steps = [2, 3, 4, 5, 10, 25, 50, 100];
-                const step = steps[(questionNumber - 1) % steps.length];
-                if (questionNumber % 3 === 0) {
-                    const times = rand(2, 5);
-                    const group = rand(2, 9);
+                const easySteps = [2, 5, 10];
+                const advancedSteps = [3, 4, 25, 50, 100];
+                const step = (level.advanced ? advancedSteps : easySteps)[rand(0, (level.advanced ? advancedSteps : easySteps).length - 1)];
+                if (level.advanced && questionNumber % 3 === 0) {
+                    const times = rand(4, 9);
+                    const group = rand(6, 12);
                     const answer = group * times;
                     return {
                         strategyId: 304,
@@ -384,7 +410,7 @@ window.DragonApp = window.DragonApp || {};
                         paso2: `${Array(times).fill(group).join(' + ')} = ${answer}.`
                     };
                 }
-                if (questionNumber % 3 === 1) {
+                if (!level.advanced || questionNumber % 3 === 1) {
                     const start = questionNumber % 2 === 0 ? 0 : 5;
                     const answer = start + step * 3;
                     return {
@@ -395,7 +421,7 @@ window.DragonApp = window.DragonApp || {};
                         paso2: `${start + step * 2} + ${step} = ${answer}.`
                     };
                 }
-                const total = rand(20, 80);
+                const total = difficultyNumber(questionNumber, 10, 40, 100, 300);
                 const part = rand(5, total - 5);
                 const answer = total - part;
                 return {

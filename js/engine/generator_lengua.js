@@ -10,8 +10,16 @@ window.DragonApp = window.DragonApp || {};
         const questionNumber = Number.isInteger(Number(rawQuestion))
             ? Math.min(20, Math.max(1, Number(rawQuestion)))
             : rand(1, 20);
-        return values[(questionNumber - 1) % values.length];
+        const split = Math.max(1, Math.ceil(values.length / 2));
+        const pool = questionNumber <= 10
+            ? values.slice(0, split)
+            : values.slice(split);
+        const available = pool.length ? pool : values;
+        return available[rand(0, available.length - 1)];
     };
+    const easyFormat = questionNumber => Number(questionNumber) <= 10
+        ? rand(1, 2)
+        : 0;
     const shuffle = values => [...values].sort(() => Math.random() - 0.5);
     const unique = values => [...new Set(values)];
     const orthographyCQu = [
@@ -197,7 +205,7 @@ window.DragonApp = window.DragonApp || {};
         if (!word.includes(blank) || rebuiltWord !== complete) {
             throw new Error(`La máscara ortográfica no coincide con «${complete}»: «${word}»`);
         }
-        const format = ((Number(options.questionNumber ?? options.index) || 1) - 1) % 3;
+        const format = easyFormat(options.questionNumber ?? options.index);
         if (format === 0) {
             return writtenQuestion(strategyId, `Escribe la palabra completa: «${word}».`, complete, `Completa el hueco con: ${missing}.`, rule);
         }
@@ -227,7 +235,11 @@ window.DragonApp = window.DragonApp || {};
     }
 
     function recoveryItem(items, questionNumber) {
-        return items[(questionNumber - 1) % items.length];
+        const split = Math.ceil(items.length / 2);
+        const pool = Number(questionNumber) <= 10
+            ? items.slice(0, split)
+            : items.slice(split);
+        return pool[rand(0, pool.length - 1)];
     }
 
     function generateRecovery2ByStrategy(strategyId, questionNumber) {
@@ -345,7 +357,7 @@ window.DragonApp = window.DragonApp || {};
         if ([1, 2, 13, 14].includes(id)) return spellingQuestion(id, settings);
         if (id === 3) {
             const [text, answer, rule] = pick(capitals, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(3, `Escribe correctamente: «${text}».`, answer, 'Revisa el comienzo de la oración y los nombres propios.', rule);
             if (format === 1) return selectionQuestion(3, '¿Qué oración está escrita correctamente?', answer, [text, text.replace(answer.split(' ').slice(-1)[0], 'madrid')], 'Revisa mayúsculas y nombres propios.', rule);
             const firstLetter = text.charAt(0).toUpperCase();
@@ -356,7 +368,7 @@ window.DragonApp = window.DragonApp || {};
             const alternatives = kind === 'sinónimo'
                 ? ['lento', 'triste', 'feo']
                 : ['grande', 'encender', 'alegre'];
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(4, `Escribe un ${kind} de «${word}».`, answer, kind === 'sinónimo' ? 'Busca una palabra de significado parecido.' : 'Busca una palabra de significado contrario.', explanation);
             if (format === 1) return selectionQuestion(4, `Elige el ${kind} de «${word}».`, answer, alternatives, 'Compara significado y tipo de relación.', explanation);
             return dragQuestion(4, `Arrastra el ${kind} de «${word}» al recuadro.`, answer, alternatives, 'Piensa en parecido o contrario.', explanation);
@@ -364,56 +376,56 @@ window.DragonApp = window.DragonApp || {};
         if (id === 5) {
             const [word, answer, explanation] = pick(syllables, settings);
             const isStress = ['llana', 'aguda'].includes(answer);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(5, isStress ? `¿Qué tipo de acentuación tiene «${word}»: aguda, llana o esdrújula?` : `Clasifica «${word}» por sus sílabas.`, answer, 'Separa la palabra en sílabas y observa cuál recibe la fuerza.', explanation);
             if (format === 1) return selectionQuestion(5, `Selecciona la clasificación de «${word}».`, answer, isStress ? ['llana', 'aguda', 'esdrújula'] : ['monosílaba', 'bisílaba', 'trisílaba', 'polisílaba'], 'Separa la palabra en sílabas.', explanation);
             return dragQuestion(5, `Arrastra la clasificación correcta de «${word}».`, answer, isStress ? ['llana', 'aguda', 'esdrújula'] : ['monosílaba', 'bisílaba', 'trisílaba', 'polisílaba'], 'Cuenta las sílabas o observa la acentuación.', explanation);
         }
         if (id === 6) {
             const [prompt, answer, explanation] = pick(grammar, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(6, prompt, answer, 'Piensa si el sustantivo o pronombre debe concordar en género, número o persona.', explanation);
             if (format === 1) return selectionQuestion(6, prompt, answer, [answer === 'libros' ? 'libro' : 'libros', 'ella', 'ellos'], 'Revisa género, número o sustitución.', explanation);
             return dragQuestion(6, `Arrastra la respuesta correcta: ${prompt}`, answer, ['libros', 'libro', 'ella', 'ellos'], 'La palabra debe concordar.', explanation);
         }
         if (id === 7) {
             const [text, answer, explanation] = pick(adjectives, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(7, `Escribe el adjetivo de la oración: «${text}».`, answer, 'Busca la palabra que expresa una cualidad o característica.', explanation);
             if (format === 1) return selectionQuestion(7, `Selecciona el adjetivo de «${text}».`, answer, ['grande', 'dulce', 'azul'], 'Un adjetivo expresa una cualidad.', explanation);
             return dragQuestion(7, `Arrastra el adjetivo de «${text}» al recuadro.`, answer, ['grande', 'dulce', 'azul'], 'Busca la cualidad del sustantivo.', explanation);
         }
         if (id === 8) {
             const [text, answer, tense, explanation] = pick(verbs, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(8, `Escribe el verbo y el tiempo verbal de la oración: «${text}».`, `${answer}, ${tense}`, `Localiza la acción y piensa si ocurre en pasado, presente o futuro: ${answer}.`, `${explanation} Respuesta: ${answer} (${tense}).`);
             if (format === 1) return selectionQuestion(8, `¿Qué tiempo verbal expresa el verbo de «${text}»?`, tense, ['pasado', 'presente', 'futuro'], `Localiza la acción: ${answer}.`, explanation);
             return dragQuestion(8, `Arrastra el tiempo del verbo «${answer}».`, tense, ['pasado', 'presente', 'futuro'], 'Observa si indica antes, ahora o después.', explanation);
         }
         if (id === 9) {
             const [text, answer, explanation] = pick(sentenceTypes, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(9, `Clasifica la oración: «${text}».`, answer, 'Observa la intención y los signos de puntuación.', explanation);
             if (format === 1) return selectionQuestion(9, `¿Qué tipo de oración es «${text}»?`, answer, ['enunciativa', 'interrogativa', 'exclamativa'], 'Observa la intención y los signos.', explanation);
             return dragQuestion(9, `Arrastra el tipo de oración: «${text}».`, answer, ['enunciativa', 'interrogativa', 'exclamativa'], 'La modalidad depende de lo que expresa.', explanation);
         }
         if (id === 10) {
             const [text, answer, explanation] = pick(punctuation, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(10, `Completa con el signo de puntuación adecuado: «${text}».`, answer, 'Observa si la oración pregunta, exclama, enumera o termina.', explanation);
             if (format === 1) return selectionQuestion(10, `Selecciona el signo adecuado para «${text}».`, answer, ['.', ',', '¿', '!'], 'Relaciona el signo con la intención.', explanation);
             return dragQuestion(10, `Arrastra el signo adecuado: «${text}».`, answer, ['.', ',', '¿', '!'], 'Preguntar, exclamar, separar o terminar.', explanation);
         }
         if (id === 11) {
             const [derivative, primitive, explanation] = pick(wordFamilies, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(11, `¿Cuál es la palabra primitiva de «${derivative}»?`, primitive, 'La palabra primitiva no procede de otra palabra de su familia.', explanation);
             if (format === 1) return selectionQuestion(11, `Elige la palabra primitiva de «${derivative}».`, primitive, ['flor', 'mar', 'libro', 'pan'], 'Busca la palabra más simple de la familia.', explanation);
             return dragQuestion(11, `Arrastra la palabra primitiva de «${derivative}».`, primitive, ['flor', 'mar', 'libro', 'pan'], 'No debe llevar una derivación visible.', explanation);
         }
         if (id === 12) {
             const [prompt, answer, explanation] = pick(cohesion, settings);
-            const format = Math.floor(Math.random() * 3);
+            const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(12, prompt, answer, 'Busca el signo, conector o pronombre que une y organiza las ideas.', explanation);
             if (format === 1) return selectionQuestion(12, prompt, answer, ['porque', 'pero', 'Él', '2, 1, 3'], 'El elemento debe unir las ideas con sentido.', explanation);
             return dragQuestion(12, `Arrastra el elemento que completa: ${prompt}`, answer, ['porque', 'pero', 'Él', '2, 1, 3'], 'El conector, pronombre o orden debe mantener el sentido.', explanation);

@@ -6,42 +6,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const LanguageGenerator = window.DragonApp.GeneratorLengua;
     const MysteryGenerator = window.DragonApp.GeneratorMystery;
     const SESSION_LENGTH = 20;
+    const THEME_STORAGE_KEY = 'dragon_theme_preference_v1';
 
     const categories = {
         math: [
-            [200, 'Recuerda', 'Valor posicional y descomposición: unidades, decenas y centenas'],
-            [1, 'Amigos del 10', 'Completar, descomponer y usar parejas del 10'],
-            [2, 'Llegar a la decena', 'Puentes y sumas pasando por la decena'],
-            [3, 'Dobles y mitades', 'Cálculo directo e incógnitas'],
-            [4, 'Restas inteligentes', 'Restas pasando por la decena inferior'],
-            [5, 'Casi dobles', 'Consecutivos usando el doble como apoyo'],
-            [6, 'Sumar y restar 9', 'Compensación con +10 y -1'],
-            [7, 'Sumar y restar 11', 'Descomposición con 10 y 1'],
-            [8, 'Amigos del 100', 'Complementarios exactos y tres sumandos'],
-            [9, 'Aproximar a la decena', 'Seleccionar la decena más cercana'],
-            [10, 'Sumas con llevadas', 'Desglosar unidades y decenas'],
-            [11, 'Restas con llevadas', 'Pedir una decena y restar'],
-            [12, 'Multiplicar por 10, 100 y 1000', 'Añadir ceros con seguridad'],
-            [13, 'Números de cuatro cifras', 'Leer, descomponer y ordenar hasta 9999'],
-            [14, 'Sumas y restas', 'Operaciones de hasta cuatro cifras'],
-            [15, 'Rectas y ángulos', 'Rectas, paralelas, perpendiculares y ángulos'],
-            [16, 'La multiplicación', 'Tablas, suma repetida y factores']
+            [200, 'La brújula de los números ocultos', 'Valor posicional y descomposición: unidades, decenas y centenas'],
+            [1, 'El pacto de las diez gemas', 'Completar, descomponer y usar parejas del 10'],
+            [2, 'El sendero de las huellas infinitas', 'Puentes y sumas pasando por la decena'],
+            [3, 'El espejo gemelo del dragón', 'Cálculo directo e incógnitas'],
+            [4, 'El sendero de las huellas infinitas', 'Restas pasando por la decena inferior'],
+            [5, 'El espejo gemelo del dragón', 'Consecutivos usando el doble como apoyo'],
+            [6, 'El sendero de las huellas infinitas', 'Compensación con +10 y -1'],
+            [7, 'El sendero de las huellas infinitas', 'Descomposición con 10 y 1'],
+            [8, 'El sendero de las huellas infinitas', 'Complementarios exactos y tres sumandos'],
+            [9, 'El sendero de las huellas infinitas', 'Seleccionar la decena más cercana'],
+            [10, 'La balanza de los guardianes', 'Desglosar unidades y decenas'],
+            [11, 'La balanza de los guardianes', 'Pedir una decena y restar'],
+            [12, 'El círculo de las estrellas mágicas', 'Añadir ceros con seguridad'],
+            [13, 'La brújula de los números ocultos', 'Leer, descomponer y ordenar hasta 9999'],
+            [14, 'La balanza de los guardianes', 'Operaciones de hasta cuatro cifras'],
+            [15, 'El círculo de las estrellas mágicas', 'Rectas, paralelas, perpendiculares y ángulos'],
+            [16, 'El círculo de las estrellas mágicas', 'Tablas, suma repetida y factores']
         ],
         lengua: [
-            [1, 'Ortografía C / QU', 'Escribe palabras completas correctamente'],
-            [2, 'Ortografía G / GU / GÜ', 'Practica la diéresis y el sonido suave'],
-            [3, 'Mayúsculas', 'Reescribe oraciones y nombres propios'],
-            [4, 'Sinónimos y antónimos', 'Relaciona el significado de las palabras'],
-            [5, 'Sílabas y acentuación', 'Clasifica palabras y tildes'],
-            [6, 'Sustantivos y pronombres', 'Género, número y sustitución nominal'],
-            [7, 'Adjetivos', 'Concuerdan con el sustantivo'],
-            [8, 'Verbos', 'Acciones y tiempos verbales'],
-            [9, 'Tipos de oración', 'Enunciativa, interrogativa y exclamativa'],
-            [10, 'Puntuación', 'Punto, coma y signos de interrogación y exclamación'],
-            [11, 'Familias de palabras', 'Palabras derivadas de una primitiva'],
-            [12, 'Coherencia y cohesión', 'Ordena ideas y evita repeticiones'],
-            [13, 'Ortografía MB / MP', 'Antes de b y p se escribe m'],
-            [14, 'Ortografía Z / D final', 'Distingue la letra final y su plural']
+            [1, 'La llave secreta de la torre', 'Escribe palabras completas correctamente'],
+            [2, 'La llave secreta de la torre', 'Practica la diéresis y el sonido suave'],
+            [3, 'El sello real del cronista', 'Reescribe oraciones y nombres propios'],
+            [4, 'El cofre de los ecos y espejos', 'Relaciona el significado de las palabras'],
+            [5, 'El pergamino de las voces concordantes', 'Clasifica palabras y tildes'],
+            [6, 'El pergamino de las voces concordantes', 'Género, número y sustitución nominal'],
+            [7, 'El pergamino de las voces concordantes', 'Concuerdan con el sustantivo'],
+            [8, 'El pergamino de las voces concordantes', 'Acciones y tiempos verbales'],
+            [9, 'El pergamino de las voces concordantes', 'Enunciativa, interrogativa y exclamativa'],
+            [10, 'El sello real del cronista', 'Punto, coma y signos de interrogación y exclamación'],
+            [11, 'El cofre de los ecos y espejos', 'Palabras derivadas de una primitiva'],
+            [12, 'El archivo perdido de la academia', 'Ordena ideas y evita repeticiones'],
+            [13, 'La llave secreta de la torre', 'Antes de b y p se escribe m'],
+            [14, 'La llave secreta de la torre', 'Distingue la letra final y su plural']
         ]
     };
 
@@ -64,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
         nameInput: document.getElementById('student-name-input'),
         hubName: document.getElementById('hub-student-name'),
         mysteryUnlockStatus: document.getElementById('mystery-unlock-status'),
+        continuationMessage: document.getElementById('continuation-message'),
+        continuationPending: document.getElementById('continuation-pending'),
+        continuationActions: document.getElementById('continuation-actions'),
         nameLabel: document.getElementById('student-name-label'),
         editName: document.getElementById('btn-edit-name'),
         recoveryBadge: document.getElementById('hub-rec-badge'),
@@ -80,7 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
         numericKeypad: document.getElementById('numeric-keypad'),
         numericKeypadPanel: document.getElementById('numeric-keypad-panel'),
         numericKeypadToggle: document.getElementById('numeric-keypad-toggle'),
-        practiceAnswerLayout: document.getElementById('practice-answer-layout')
+        numericSymbolPanel: document.getElementById('numeric-symbol-panel'),
+        numericSymbolToggle: document.querySelector('.numeric-symbol-toggle'),
+        practiceAnswerLayout: document.getElementById('practice-answer-layout'),
+        helpToggle: document.getElementById('practice-help-toggle'),
+        helpCounter: document.getElementById('practice-help-counter'),
+        helpPanel: document.getElementById('practice-help-panel'),
+        helpContent: document.getElementById('practice-help-content')
     };
 
     const views = {
@@ -103,8 +113,57 @@ document.addEventListener('DOMContentLoaded', () => {
         timer: null,
         mysteryStoryId: 1,
         numericKeypadMinimized: false,
-        sessionLength: SESSION_LENGTH
+        sessionLength: SESSION_LENGTH,
+        helpConsultations: 0,
+        helpOpen: false
     };
+
+    const mysteryNarrativeTitles = {
+        1: 'El secreto de la biblioteca cerrada',
+        2: 'La brújula del patio',
+        3: 'El mensaje cifrado del castillo',
+        4: 'La desaparición del pergamino',
+        5: 'El laboratorio del relojero',
+        6: 'La clase sale de expedición'
+    };
+
+    function getMysteryNarrativeTitle(storyId, fallbackTitle) {
+        return mysteryNarrativeTitles[Number(storyId)] || fallbackTitle;
+    }
+
+    function getSavedTheme() {
+        try {
+            return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+        } catch (error) {
+            return 'light';
+        }
+    }
+
+    function applyTheme(theme) {
+        const isDark = theme === 'dark';
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+
+        const toggle = document.getElementById('theme-toggle');
+        const label = document.getElementById('theme-toggle-label');
+        if (toggle) {
+            toggle.setAttribute('aria-checked', String(isDark));
+            toggle.setAttribute('aria-label', isDark ? 'Activar modo claro' : 'Activar modo oscuro');
+            toggle.title = isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+            const icon = toggle.querySelector('.theme-toggle-icon');
+            if (icon) icon.textContent = isDark ? '🌙' : '☀️';
+        }
+        if (label) label.textContent = isDark ? 'Oscuro' : 'Claro';
+    }
+
+    function toggleTheme() {
+        const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+        } catch (error) {
+            // La interfaz sigue funcionando aunque el navegador bloquee localStorage.
+        }
+    }
 
     function setTheme(theme) {
         elements.app.className = `theme-${theme}`;
@@ -133,6 +192,128 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.mysteryUnlockStatus.textContent = unlock.canCreate
             ? `${unlock.unlockedStories} historia${unlock.unlockedStories === 1 ? '' : 's'} disponible${unlock.unlockedStories === 1 ? '' : 's'}. ${storyProgressMessage(unlock)}`
             : storyProgressMessage(unlock);
+        renderContinuationPanel(data, unlock);
+    }
+
+    function availableCategoriesFor(data, subject) {
+        return data.modoRecuperacion
+            ? recoveryCategories[subject]
+            : categories[subject];
+    }
+
+    function pendingActivities(data) {
+        const completed = new Set((data.actividadesCompletadas || []).map(activity =>
+            `${activity.subject}:${Number(activity.strategyId)}`
+        ));
+        const available = new Map();
+
+        ['math', 'lengua'].forEach(subject => {
+            availableCategoriesFor(data, subject).forEach(([id, title, description]) => {
+                available.set(`${subject}:${Number(id)}`, {
+                    subject,
+                    id: Number(id),
+                    title,
+                    description
+                });
+            });
+        });
+
+        const pending = new Map();
+        (data.sesiones || []).forEach(session => {
+            const key = `${session.subject}:${Number(session.strategyId)}`;
+            if (!available.has(key) || completed.has(key)) return;
+            const item = available.get(key);
+            const timestamp = Date.parse(session.fecha) || 0;
+            if (!pending.has(key) || timestamp > pending.get(key).timestamp) {
+                pending.set(key, { ...item, timestamp });
+            }
+        });
+
+        return [...pending.values()].sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    function nextSuggestedActivity(data) {
+        const pending = pendingActivities(data);
+        if (pending.length) return pending[0];
+
+        const passed = new Set(Storage.getMasteredStrategies(data).map(item =>
+            `${item.subject}:${Number(item.strategyId)}`
+        ));
+        const subjectOrder = ['math', 'lengua'];
+
+        for (const subject of subjectOrder) {
+            const candidate = availableCategoriesFor(data, subject).find(([id]) =>
+                !passed.has(`${subject}:${Number(id)}`)
+            );
+            if (candidate) {
+                return {
+                    subject,
+                    id: Number(candidate[0]),
+                    title: candidate[1],
+                    description: candidate[2]
+                };
+            }
+        }
+        return null;
+    }
+
+    function createContinuationButton(activity, label) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'action-btn primary continuation-button';
+        button.textContent = label;
+        button.addEventListener('click', () => {
+            state.subject = activity.subject;
+            startSession(activity.id, activity.title);
+        });
+        return button;
+    }
+
+    function renderContinuationPanel(data, unlock) {
+        const pending = pendingActivities(data);
+        const suggestion = nextSuggestedActivity(data);
+        elements.continuationActions.replaceChildren();
+        elements.continuationPending.replaceChildren();
+
+        if (unlock.canCreate) {
+            elements.continuationMessage.textContent =
+                `¡Has desbloqueado ${unlock.unlockedStories} historia${unlock.unlockedStories === 1 ? '' : 's'}! Si te apetece, ya puedes abrir una aventura de misterio.`;
+            const mysteryButton = document.createElement('button');
+            mysteryButton.type = 'button';
+            mysteryButton.className = 'action-btn mystery-action continuation-button';
+            mysteryButton.textContent = 'Abrir historia desbloqueada';
+            mysteryButton.addEventListener('click', openMystery);
+            elements.continuationActions.appendChild(mysteryButton);
+        } else {
+            elements.continuationMessage.textContent =
+                `${storyProgressMessage(unlock)} Puedes elegir la aventura que prefieras y avanzar a tu ritmo.`;
+        }
+
+        if (suggestion) {
+            elements.continuationActions.appendChild(createContinuationButton(
+                suggestion,
+                pending.length ? 'Retomar propuesta' : 'Probar una actividad'
+            ));
+        }
+
+        if (pending.length) {
+            const intro = document.createElement('p');
+            intro.textContent = `También puedes retomar ${pending.length === 1 ? 'esta actividad empezada' : 'estas actividades empezadas'}:`;
+            elements.continuationPending.appendChild(intro);
+
+            pending.slice(0, 3).forEach(activity => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'continuation-link';
+                button.textContent = activity.title;
+                button.addEventListener('click', () => {
+                    state.subject = activity.subject;
+                    startSession(activity.id, activity.title);
+                });
+                elements.continuationPending.appendChild(button);
+            });
+        }
+        elements.continuationPending.hidden = pending.length === 0;
     }
 
     function start() {
@@ -202,6 +383,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.sessionLength = categoryId === 200 ? 10 : SESSION_LENGTH;
         state.exercise = null;
         state.completionRecorded = false;
+        state.helpConsultations = 0;
+        state.helpOpen = false;
         showView('practice', state.subject);
         nextExercise();
     }
@@ -285,16 +468,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function isNumericOpenAnswer(exercise) {
         if (state.subject !== 'math' || !exercise) return false;
         if (Array.isArray(exercise.options) && exercise.options.length > 0) return false;
-        return /^[-+]?(?:\d+(?:[,.]\d*)?|[,.]\d+)$/.test(String(exercise.answer).trim());
+        return exercise.activityType !== 'drag';
     }
 
     function setNumericKeypadVisible(visible) {
         elements.numericKeypad.hidden = !visible;
         elements.practiceAnswerLayout.classList.toggle('numeric-keypad-active', visible);
-        if (!visible) return;
+        if (!visible) {
+            elements.numericSymbolPanel.hidden = true;
+            elements.numericSymbolToggle.setAttribute('aria-expanded', 'false');
+            return;
+        }
         elements.numericKeypad.classList.toggle('minimized', state.numericKeypadMinimized);
         elements.numericKeypadToggle.textContent = state.numericKeypadMinimized ? 'Mostrar' : 'Minimizar';
         elements.numericKeypadToggle.setAttribute('aria-expanded', String(!state.numericKeypadMinimized));
+        if (state.numericKeypadMinimized) {
+            elements.numericSymbolPanel.hidden = true;
+            elements.numericSymbolToggle.setAttribute('aria-expanded', 'false');
+        }
     }
 
     function insertNumericText(text) {
@@ -326,13 +517,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 input.setSelectionRange(start - 1, start - 1);
             }
             input.dispatchEvent(new Event('input', { bubbles: true }));
-        } else if (action === 'toggle-sign') {
-            const input = elements.answerInput;
-            input.value = input.value.startsWith('-')
-                ? input.value.slice(1)
-                : `-${input.value}`;
-            input.setSelectionRange(input.value.length, input.value.length);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (action === 'symbols') {
+            const isOpen = !elements.numericSymbolPanel.hidden;
+            elements.numericSymbolPanel.hidden = isOpen;
+            elements.numericSymbolToggle.setAttribute('aria-expanded', String(!isOpen));
         } else if (action === 'confirm') {
             elements.answerForm.requestSubmit();
         }
@@ -350,8 +538,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function remainingHelpUses() {
+        return Math.max(0, 3 - state.helpConsultations);
+    }
+
+    function updateHelpCounter() {
+        const remaining = remainingHelpUses();
+        elements.helpCounter.textContent =
+            `Oportunidades de ayuda: ${remaining}/3`;
+        elements.helpToggle.setAttribute(
+            'aria-label',
+            `Consejo del pergamino. ${remaining} de 3 oportunidades restantes`
+        );
+    }
+
+    function closeHelpPanel() {
+        state.helpOpen = false;
+        elements.helpPanel.hidden = true;
+        elements.helpToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function getActivityHelpConsultation(exercise) {
+        if (state.helpConsultations === 1) {
+            return `Primera pista del pergamino: ${exercise.paso1 || 'Lee con calma el enunciado y subraya los datos más importantes.'}`;
+        }
+        if (state.helpConsultations === 2) {
+            return `Segunda pista del pergamino: ${exercise.paso2 || 'Revisa qué operación o regla te puede ayudar y hazlo paso a paso.'}`;
+        }
+        return '🔔 Has agotado las 3 consultas mágicas de este pergamino. ¡Pon toda tu atención, inténtalo con ingenio o avisa al profe para que te lo explique!';
+    }
+
+    function consultActivityHelp() {
+        if (state.helpOpen) {
+            closeHelpPanel();
+            return;
+        }
+
+        if (state.helpConsultations >= 3) {
+            elements.helpContent.textContent =
+                '🔔 Has agotado las 3 consultas mágicas de este pergamino. ¡Pon toda tu atención, inténtalo con ingenio o avisa al profe para que te lo explique!';
+        } else {
+            state.helpConsultations += 1;
+            elements.helpContent.textContent =
+                getActivityHelpConsultation(state.exercise);
+        }
+
+        updateHelpCounter();
+        state.helpOpen = true;
+        elements.helpPanel.hidden = false;
+        elements.helpToggle.setAttribute('aria-expanded', 'true');
+    }
+
     function renderExercise() {
         const exercise = state.exercise;
+        closeHelpPanel();
+        updateHelpCounter();
         elements.progress.textContent = `Ejercicio ${state.exerciseIndex} de ${state.sessionLength}`;
         elements.practiceCategory.textContent = state.categoryName;
         elements.prompt.textContent = exercise.prompt;
@@ -542,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         MysteryGenerator.getMysteryStoriesList().slice(0, unlock.unlockedStories).forEach(story => {
             const option = document.createElement('option');
             option.value = String(story.id);
-            option.textContent = story.title;
+            option.textContent = getMysteryNarrativeTitle(story.id, story.title);
             option.selected = story.id === state.mysteryStoryId;
             selector.appendChild(option);
         });
@@ -572,7 +813,8 @@ document.addEventListener('DOMContentLoaded', () => {
             recovery2: data.modoRecuperacion,
             masteredStrategies: Storage.getMasteredStrategies(data)
         });
-        document.getElementById('mystery-title').textContent = story.title;
+        document.getElementById('mystery-title').textContent =
+            getMysteryNarrativeTitle(state.mysteryStoryId, story.title);
         document.getElementById('mystery-step').textContent = `Pantalla ${Math.min(20, progress + 1)} de 20`;
         document.getElementById('mystery-text').textContent = question.text;
         document.getElementById('mystery-prompt').textContent = question.prompt;
@@ -825,12 +1067,21 @@ document.addEventListener('DOMContentLoaded', () => {
             handleNumericKeypadAction(button.dataset.action);
         }
     });
+    elements.numericSymbolPanel.addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        if (button.dataset.number !== undefined) {
+            insertNumericText(button.dataset.number);
+        }
+    });
     document.getElementById('btn-mystery-back').addEventListener('click', () => showView('hub'));
+    elements.helpToggle.addEventListener('click', consultActivityHelp);
     document.getElementById('mystery-story-selector').addEventListener('change', event => {
         state.mysteryStoryId = Number(event.target.value);
         renderMystery();
     });
     document.getElementById('btn-teacher-panel').addEventListener('click', openTeacherPanel);
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     document.getElementById('teacher-activity-progress').addEventListener('click', event => {
         const button = event.target.closest('[data-category-id]');
         if (!button) return;
@@ -866,5 +1117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showView('name');
     });
 
+    applyTheme(getSavedTheme());
     start();
 });

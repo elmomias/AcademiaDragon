@@ -14,6 +14,12 @@
                 <span id="student-name-label" class="student-label" hidden></span>
                 <button id="btn-edit-name" class="header-btn" type="button" hidden title="Cambiar nombre">✏️ Nombre</button>
                 <button id="btn-teacher-panel" class="header-btn" type="button">⚙️ Profesor</button>
+                <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Activar modo oscuro" title="Cambiar entre modo claro y oscuro">
+                    <span class="theme-toggle-track" aria-hidden="true">
+                        <span class="theme-toggle-icon">☀️</span>
+                    </span>
+                    <span id="theme-toggle-label" class="theme-toggle-label">Claro</span>
+                </button>
             </div>
         </header>
 
@@ -37,6 +43,15 @@
                     </div>
                     <span id="hub-rec-badge" class="status-badge" hidden>Refuerzo 2º activo</span>
                 </div>
+                <section id="continuation-panel" class="continuation-panel" aria-labelledby="continuation-title">
+                    <div class="continuation-copy">
+                        <span class="eyebrow">Tu próxima opción</span>
+                        <h2 id="continuation-title">Puedes continuar cuando quieras</h2>
+                        <p id="continuation-message"></p>
+                        <div id="continuation-pending" class="continuation-pending" hidden></div>
+                    </div>
+                    <div id="continuation-actions" class="continuation-actions"></div>
+                </section>
                 <div class="hub-grid">
                     <button class="subject-card math-card" type="button" data-subject="math">
                         <span class="subject-icon">🐉🔢</span>
@@ -81,6 +96,15 @@
                 <div id="practice-answer-layout" class="practice-answer-layout">
                     <div class="practice-main-column">
                         <div id="practice-prompt" class="prompt-box" aria-live="polite"></div>
+                        <aside id="practice-help" class="practice-help" aria-label="Ayuda para esta actividad">
+                            <button id="practice-help-toggle" class="practice-help-toggle" type="button" aria-expanded="false" aria-controls="practice-help-panel">
+                                <span>🗝️ Consejo del pergamino</span>
+                                <span id="practice-help-counter" class="practice-help-counter">Oportunidades de ayuda: 3/3</span>
+                            </button>
+                            <div id="practice-help-panel" class="practice-help-panel" hidden>
+                                <p id="practice-help-content"></p>
+                            </div>
+                        </aside>
                         <div id="practice-options" class="options-grid" hidden></div>
                         <form id="answer-form" class="input-container">
                             <label class="sr-only" for="practice-input">Tu respuesta</label>
@@ -108,10 +132,22 @@
                             <button class="numeric-key" type="button" data-number="2">2</button>
                             <button class="numeric-key" type="button" data-number="3">3</button>
                             <button class="numeric-key" type="button" data-number="+">+</button>
-                            <button class="numeric-key" type="button" data-action="toggle-sign" aria-label="Cambiar signo">+/−</button>
+                            <button class="numeric-key numeric-symbol-toggle" type="button" data-action="symbols" aria-label="Abrir símbolos" aria-expanded="false">&lt;&gt;</button>
                             <button class="numeric-key zero" type="button" data-number="0">0</button>
                             <button class="numeric-key" type="button" data-number=",">,</button>
                             <button class="numeric-key confirm" type="button" data-action="confirm" aria-label="Comprobar respuesta">✓</button>
+                        </div>
+                        <div id="numeric-symbol-panel" class="numeric-symbol-panel" aria-label="Símbolos especiales" hidden>
+                            <button class="numeric-key" type="button" data-number="<" aria-label="Menor que">&lt;</button>
+                            <button class="numeric-key" type="button" data-number=">" aria-label="Mayor que">&gt;</button>
+                            <button class="numeric-key" type="button" data-number="=" aria-label="Igual">=</button>
+                            <button class="numeric-key" type="button" data-number="≠" aria-label="Distinto">≠</button>
+                            <button class="numeric-key" type="button" data-number="~" aria-label="Aproximadamente">~</button>
+                            <button class="numeric-key" type="button" data-number="≤" aria-label="Menor o igual">≤</button>
+                            <button class="numeric-key" type="button" data-number="≥" aria-label="Mayor o igual">≥</button>
+                            <button class="numeric-key" type="button" data-number="%">%</button>
+                            <button class="numeric-key" type="button" data-number="/">/</button>
+                            <button class="numeric-key" type="button" data-number=":" aria-label="Dos puntos">:</button>
                         </div>
                     </aside>
                 </div>
@@ -185,8 +221,8 @@
     </div>
 
     <script src="js/services/storage.js"></script>
-    <script src="js/engine/generator_math.js?v=5"></script>
-    <script src="js/engine/generator_lengua.js?v=5"></script>
+    <script src="js/engine/generator_math.js?v=6"></script>
+    <script src="js/engine/generator_lengua.js?v=6"></script>
     <script src="js/engine/generator.js"></script>
     <script src="js/app.js?v=2"></script>
 </body>
