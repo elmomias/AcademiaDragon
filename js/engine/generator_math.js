@@ -22,6 +22,71 @@ window.DragonApp = window.DragonApp || {};
     }
     const shuffle = values => [...values].sort(() => Math.random() - 0.5);
     const answerOptions = answer => shuffle([answer, answer + 10, Math.max(0, answer - 10)].filter((v, i, a) => a.indexOf(v) === i));
+    const doubleHistory = [];
+
+    function selectDoubleBase(level) {
+        const pool = level.advanced
+            ? Array.from({ length: 38 }, (_, index) => index + 12)
+            : Array.from({ length: 10 }, (_, index) => index + 1);
+        const poolSet = new Set(pool);
+        const relevantHistory = doubleHistory.filter(value => poolSet.has(value));
+
+        let available = pool.filter(value => !relevantHistory.includes(value));
+        if (!available.length) {
+            doubleHistory.length = 0;
+            available = pool.slice();
+        }
+
+        if (relevantHistory.length >= 2) {
+            const lastThree = doubleHistory.slice(-3);
+            if (lastThree.length === 3
+                && lastThree[0] === lastThree[1]
+                && lastThree[1] === lastThree[2]) {
+                available = available.filter(value => value !== lastThree[0]);
+            }
+        }
+
+        if (!available.length) available = pool.slice();
+        const selected = available[rand(0, available.length - 1)];
+        doubleHistory.push(selected);
+        return selected;
+    }
+
+    function rememberChallenge(questionNumber) {
+        if (questionNumber % 2 === 1) {
+            const pairs = rand(2, 3);
+            const values = Array.from({ length: pairs }, () => {
+                const first = rand(1, 9);
+                return [first, 10 - first];
+            }).flat();
+            const total = values.reduce((sum, value) => sum + value, 0);
+            return {
+                prompt: 'Agrupa las piedras de los sacos formando parejas de 10. ¿Cuántas piedras hay en total?',
+                answer: total,
+                paso1: `Busca parejas entre los sacos que sumen 10. Puedes formar ${pairs} parejas.`,
+                paso2: `${pairs} decenas son ${total} piedras.`,
+                visual: {
+                    type: 'sacks',
+                    values
+                }
+            };
+        }
+
+        const start = rand(1, 8) * 10 + rand(1, 4);
+        const jumps = [rand(1, 2) * 10, rand(1, 2) * 10, rand(1, 9)];
+        const total = start + jumps.reduce((sum, jump) => sum + jump, 0);
+        return {
+            prompt: 'Avanza por la recta con los saltos indicados. ¿A qué número llegas?',
+            answer: total,
+            paso1: `Empieza en ${start} y suma los saltos de izquierda a derecha.`,
+            paso2: `${start} ${jumps.map(jump => `+ ${jump}`).join(' ')} = ${total}.`,
+            visual: {
+                type: 'number-line',
+                start,
+                jumps
+            }
+        };
+    }
 
     function generateByStrategy(strategyId, options = {}) {
         const questionNumber = Math.min(20, Math.max(1, Number(options.questionNumber) || 1));
@@ -93,15 +158,29 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 3: {
-                const n = difficultyNumber(questionNumber, 1, 10, 12, 49);
+                const n = selectDoubleBase(level);
                 const double = n * 2;
-                const variant = level.advanced ? rand(2, 3) : rand(1, 2);
+                const variant = level.advanced && double >= 20 ? rand(1, 2) : 1;
+                if (variant === 2) {
+                    const tens = Math.floor(double / 10);
+                    const units = double % 10;
+                    return {
+                        strategyId: 3,
+                        doubleBase: n,
+                        prompt: `${n} + ${n} = ${tens}□`,
+                        answer: units,
+                        options: null,
+                        paso1: `Calculamos el doble de ${n}: ${n} + ${n} = ${double}.`,
+                        paso2: `La cifra de las decenas es ${tens}; falta escribir las unidades: ${units}.`
+                    };
+                }
                 return {
                     strategyId: 3,
-                    prompt: variant === 1 ? `${n} + ${n}` : variant === 2 ? `? + ? = ${double}` : `${n} + ? = ${double}`,
-                    answer: variant === 1 ? double : n,
+                    doubleBase: n,
+                    prompt: `${n} + ${n}`,
+                    answer: double,
                     options: null,
-                    paso1: variant === 2 ? `${double} es el doble de ${n}.` : `Calculamos el doble de ${n}.`,
+                    paso1: `Calculamos el doble de ${n}.`,
                     paso2: `${n} + ${n} = ${double}.`
                 };
             }
@@ -433,79 +512,16 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             case 200: {
-                const exercises = [
-                    {
-                        prompt: 'En el número 40, ¿cuántas unidades hay?',
-                        answer: 0,
-                        paso1: 'Unidad = 1. Mira la última cifra: la cifra de las unidades.',
-                        paso2: 'En 40, la última cifra es 0. Por eso hay 0 unidades.'
-                    },
-                    {
-                        prompt: 'En el número 53, ¿qué cifra ocupa el lugar de las decenas?',
-                        answer: 5,
-                        paso1: 'Decena = 10. Las decenas son el segundo lugar contando desde la derecha.',
-                        paso2: 'En 53, el 5 está en el lugar de las decenas: 5 decenas.'
-                    },
-                    {
-                        prompt: 'En el número 307, ¿qué cifra ocupa el lugar de las centenas?',
-                        answer: 3,
-                        paso1: 'Centena = 100. Las centenas son el tercer lugar contando desde la derecha.',
-                        paso2: 'En 307, el 3 está en el lugar de las centenas: 3 centenas.'
-                    },
-                    {
-                        prompt: 'En el número 345, ¿cuántas unidades hay?',
-                        answer: 5,
-                        paso1: 'Unidad = 1. La cifra de la derecha indica las unidades.',
-                        paso2: '345 termina en 5, así que tiene 5 unidades.'
-                    },
-                    {
-                        prompt: 'Completa la descomposición: 345 = ? + 40 + 5',
-                        answer: 300,
-                        paso1: 'Centena = 100. La cifra 3 de las centenas vale 300.',
-                        paso2: '345 se separa así: 300 + 40 + 5.'
-                    },
-                    {
-                        prompt: 'Completa la descomposición: 345 = 300 + ? + 5',
-                        answer: 40,
-                        paso1: 'Decena = 10. El 4 de las decenas vale 40.',
-                        paso2: '345 se separa así: 300 + 40 + 5.'
-                    },
-                    {
-                        prompt: 'Completa la descomposición: 345 = 300 + 40 + ?',
-                        answer: 5,
-                        paso1: 'Unidad = 1. El 5 de las unidades vale 5.',
-                        paso2: '345 se separa así: 300 + 40 + 5.'
-                    },
-                    {
-                        prompt: 'Recompón el número: 2 C + 4 D + 3 U',
-                        answer: 243,
-                        paso1: 'Recuerda: 1 C = 100, 1 D = 10 y 1 U = 1.',
-                        paso2: '2 C = 200, 4 D = 40 y 3 U = 3. El número es 243.'
-                    },
-                    {
-                        prompt: 'Recompón el número: 5 C + 0 D + 7 U',
-                        answer: 507,
-                        paso1: 'El 0 de las decenas significa que no sumamos ninguna decena.',
-                        paso2: '5 C = 500 y 7 U = 7. Juntamos 500 + 0 + 7 = 507.'
-                    },
-                    {
-                        prompt: 'Recompón el número: 4 C + 6 D + 2 U',
-                        answer: 462,
-                        paso1: 'Convierte cada orden: centenas en 100, decenas en 10 y unidades en 1.',
-                        paso2: '4 C = 400, 6 D = 60 y 2 U = 2. 400 + 60 + 2 = 462.'
-                    }
-                ];
-                const index = (Number.isFinite(questionNumber)
-                    ? Math.max(1, Math.min(10, questionNumber))
-                    : 1) - 1;
-                const exercise = exercises[index];
+                const exercise = rememberChallenge(questionNumber);
                 return {
                     strategyId: 200,
                     prompt: exercise.prompt,
                     answer: exercise.answer,
                     options: null,
                     paso1: exercise.paso1,
-                    paso2: exercise.paso2
+                    paso2: exercise.paso2,
+                    visual: exercise.visual,
+                    activityType: 'visual'
                 };
             }
             default:

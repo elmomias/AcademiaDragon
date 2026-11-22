@@ -171,6 +171,16 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 
 .practice-card { min-height: 0; }
 .prompt-box { margin: 1.5rem 0; padding: clamp(1.5rem, 5vw, 2.6rem) 1rem; border: 2px solid color-mix(in srgb, var(--primary) 18%, white); border-radius: 18px; background: var(--soft-bg); font-size: clamp(1.35rem, 4.5vw, 2.15rem); font-weight: 800; line-height: 1.4; text-align: center; }
+.visual-prompt-title { max-width: 48rem; margin: 0 auto 1.2rem; font-size: clamp(1.05rem, 3vw, 1.45rem); line-height: 1.35; }
+.sacks-visual { display: flex; align-items: flex-end; justify-content: center; gap: clamp(0.55rem, 2vw, 1.25rem); flex-wrap: wrap; }
+.dragon-sack { position: relative; display: grid; place-items: center; width: clamp(4.2rem, 12vw, 5.8rem); height: clamp(5rem, 15vw, 6.8rem); border: 3px solid #a16207; border-radius: 42% 42% 48% 48%; background: linear-gradient(145deg, #fde68a, #f59e0b); color: #713f12; box-shadow: inset 0 -8px 0 rgba(180, 83, 9, 0.15), 0 5px 0 rgba(120, 53, 15, 0.12); }
+.dragon-sack::before { content: ''; position: absolute; top: -0.62rem; width: 72%; height: 1rem; border: 3px solid #a16207; border-radius: 55% 55% 35% 35%; background: #fcd34d; }
+.sack-stones { display: grid; place-items: center; min-width: 2.35rem; min-height: 2.35rem; border: 2px solid rgba(113, 63, 18, 0.38); border-radius: 50%; background: rgba(255, 255, 255, 0.72); font-size: clamp(1.25rem, 4vw, 1.9rem); }
+.number-line-visual { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 1rem 0 0.25rem; }
+.number-line-node { display: grid; place-items: center; flex: 0 0 auto; min-width: 3.25rem; min-height: 3.25rem; padding: 0.35rem; border: 3px solid var(--primary); border-radius: 50%; background: #fff; color: var(--primary-dark, #1e3a8a); font-size: clamp(1rem, 3vw, 1.4rem); }
+.number-line-node.finish { border-style: dashed; background: color-mix(in srgb, var(--primary) 8%, white); }
+.number-line-jump { display: flex; min-width: 0; flex: 1 1 5rem; flex-direction: column; align-items: stretch; color: #059669; font-size: clamp(0.9rem, 2.5vw, 1.2rem); }
+.number-line-arrow { display: block; overflow: hidden; border-bottom: 4px solid #38bdf8; color: #38bdf8; line-height: 0.6; font-size: clamp(1.5rem, 5vw, 2.7rem); text-align: right; }
 .options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
 .option-btn { min-height: 64px; padding: 1rem; border: 2px solid #cbd5e1; border-radius: 13px; color: #1e293b; background: #f8fafc; font-size: 1.05rem; }
 .option-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--soft-bg); }
