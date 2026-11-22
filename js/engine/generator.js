@@ -5,543 +5,378 @@ window.DragonApp = window.DragonApp || {};
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    function exercise(strategyId, prompt, answer, paso1, paso2) {
-        return { strategyId, prompt, answer, paso1, paso2 };
+    const students = [
+        'Israel', 'Marco', 'Elisabeth', 'Andrea', 'Ishak', 'Carmen',
+        'Arianna', 'Ángel', 'Marta', 'Lyam', 'Juan Antonio', 'Hugo',
+        'Noah', 'Romays', 'Omar', 'Adrián', 'Oona', 'Mouna',
+        'Kiko', 'Alicia', 'Adam', 'Arabia'
+    ];
+    const studentGender = {
+        Israel: 'chico',
+        Marco: 'chico',
+        Elisabeth: 'chica',
+        Andrea: 'chica',
+        Ishak: 'chico',
+        Carmen: 'chica',
+        Arianna: 'chica',
+        Ángel: 'chico',
+        Marta: 'chica',
+        Lyam: 'chico',
+        'Juan Antonio': 'chico',
+        Hugo: 'chico',
+        Noah: 'chico',
+        Romays: 'chico',
+        Omar: 'chico',
+        Adrián: 'chico',
+        Oona: 'chica',
+        Mouna: 'chica',
+        Kiko: 'chico',
+        Alicia: 'chica',
+        Adam: 'chico',
+        Arabia: 'chica'
+    };
+
+    const stories = {
+        1: {
+            title: 'El enigma de la biblioteca encantada',
+            location: 'la biblioteca encantada',
+            participants: ['Marco', 'Oona'],
+            beats: [
+                'Una lámpara parpadea junto a un libro cerrado.',
+                'El dragón Lume deja una marca dorada en una estantería.',
+                'Aparece una tarjeta escondida entre dos atlas.',
+                'El reloj de la sala se para de repente.',
+                'El bibliotecario invisible deja una pista bajo la mesa.'
+            ]
+        },
+        2: {
+            title: 'El susurro del bosque de esmeraldas',
+            location: 'el bosque de esmeraldas',
+            participants: ['Adrián', 'Mouna', 'Ishak', 'Carmen'],
+            beats: [
+                'Una hoja verde vibra aunque no corre viento.',
+                'El duende Briz aparece detrás de un tronco.',
+                'Cuatro piedras forman un camino desconocido.',
+                'Un búho señala una rama con el ala.',
+                'La fuente del bosque dibuja símbolos sobre el agua.'
+            ]
+        },
+        3: {
+            title: 'El tren que llegó sin hora',
+            location: 'la antigua estación',
+            participants: ['Lyam', 'Alicia', 'Hugo', 'Oona', 'Noah', 'Arabia'],
+            beats: [
+                'Un tren sin conductor se detiene junto al andén.',
+                'La máquina muestra un billete de color violeta.',
+                'Una maleta se mueve dentro del vagón silencioso.',
+                'El conductor fantasma Firmin dejó una pizarra.',
+                'El reloj de la estación gira al revés.'
+            ]
+        },
+        4: {
+            title: 'El observatorio bajo la tormenta',
+            location: 'el observatorio',
+            participants: ['Arianna', 'Juan Antonio'],
+            beats: [
+                'Un telescopio apunta a una estrella ausente.',
+                'La constelación forma una flecha sobre el cristal.',
+                'Una esfera celeste gira sin que nadie la toque.',
+                'La dragona Astra deja un mapa de luz.',
+                'El trueno revela números sobre la cúpula.'
+            ]
+        },
+        5: {
+            title: 'La puerta sin llave del castillo',
+            location: 'el castillo de las llaves',
+            participants: ['Elisabeth', 'Ángel', 'Romays', 'Adam'],
+            beats: [
+                'Una puerta aparece donde antes solo había una pared.',
+                'El guardián Tork deja cuatro cerraduras abiertas.',
+                'Una sombra entrega una caja sin tapa.',
+                'Las antorchas proyectan letras sobre el suelo.',
+                'Una cadena dorada marca una última pista.'
+            ]
+        },
+        6: {
+            title: 'La aventura final de toda la clase',
+            location: 'el laberinto del dragón',
+            participants: students,
+            beats: [
+                'Toda la clase escucha el rugido protector del dragón Auren.',
+                'Veintidós linternas dibujan una ruta en la pared.',
+                'El gran puente se ilumina al resolver cada pista.',
+                'Un espejo repite una palabra distinta.',
+                'La salida aparece cuando la clase comparte sus saberes.'
+            ]
+        }
+    };
+
+    function resolveOptions(options = {}) {
+        const source = options && typeof options === 'object' ? options : {};
+        const rawQuestion = source.questionNumber ?? source.index ?? source.sceneStep;
+        const questionNumber = Number.isInteger(Number(rawQuestion))
+            ? Math.min(20, Math.max(1, Number(rawQuestion)))
+            : rand(1, 20);
+        const recovery2 = Boolean(
+            source.recovery2
+            || source.recuperacion2
+            || source.isRecovery2
+            || window.DragonApp.recovery2
+            || window.DragonApp.recuperacion2
+        );
+        const mastered = Array.isArray(source.masteredStrategies) ? source.masteredStrategies : [];
+
+        return {
+            questionNumber,
+            level: questionNumber <= 10 ? 1 : 2,
+            recovery2,
+            mastered
+        };
     }
 
-    function generateByStrategy(strategyId) {
+    function shuffled(options, answer) {
+        const unique = Array.from(new Set([String(answer), ...options.map(String)]));
+        const numericAnswer = Number(answer);
+        let offset = 1;
+        while (unique.length < 3 && Number.isFinite(numericAnswer)) {
+            unique.push(String(Math.max(0, numericAnswer + offset)));
+            offset = offset > 0 ? -offset : -offset + 1;
+        }
+        if (unique.length < 3) unique.push('No corresponde');
+        if (unique.length < 3) unique.push('Ninguna de estas');
+        for (let i = unique.length - 1; i > 0; i -= 1) {
+            const j = rand(0, i);
+            [unique[i], unique[j]] = [unique[j], unique[i]];
+        }
+        return unique.slice(0, 3);
+    }
+
+    function result(answer, alternatives, paso1, paso2, prompt) {
+        return {
+            prompt,
+            answer,
+            options: shuffled(alternatives.filter(item => String(item) !== String(answer)), answer),
+            paso1,
+            paso2
+        };
+    }
+
+    function mathEnigma(strategyId, level, recovery2, seed) {
+        const advanced = level === 2;
+        const value = recovery2
+            ? 2 + seed % 8 + (advanced ? 10 : 0)
+            : 4 + seed % 12 + (advanced ? 30 : 0);
+
         switch (Number(strategyId)) {
             case 1: {
-                const variant = rand(1, 6);
-
-                if (variant <= 2) {
-                    const known = rand(1, 9);
-                    const answer = 10 - known;
-                    const prompt = variant === 1
-                        ? `${known} + ? = 10`
-                        : `? + ${known} = 10`;
-                    return exercise(
-                        1,
-                        prompt,
-                        answer,
-                        `Busca el amigo del ${known}: la pareja que completa una decena.`,
-                        `${known} + ${answer} = 10. La respuesta es ${answer}.`
-                    );
-                }
-
-                if (variant === 6) {
-                    const first = rand(6, 9);
-                    const friend = 10 - first;
-                    const remainder = rand(1, 9 - friend);
-                    const second = friend + remainder;
-                    return exercise(
-                        1,
-                        `${first} + ${second} = ${first} + ${friend} + ?`,
-                        remainder,
-                        `Separa ${second} para utilizar primero el amigo de ${first}: ${friend}.`,
-                        `${first} + ${friend} = 10 y todavía quedan ${remainder}.`
-                    );
-                }
-
-                const a = rand(1, 5);
-                const b = rand(1, 8 - a);
-                const knownTotal = a + b;
-                const answer = 10 - knownTotal;
-                const prompts = [
-                    `${a} + ${b} + ? = 10`,
-                    `${a} + ? + ${b} = 10`,
-                    `? + ${a} + ${b} = 10`
-                ];
-                return exercise(
-                    1,
-                    prompts[variant - 3],
-                    answer,
-                    `Agrupa los dos números que conoces: ${a} + ${b} = ${knownTotal}.`,
-                    `De ${knownTotal} a 10 faltan ${answer}.`
-                );
+                const known = Math.min(10, value);
+                return result(10 - known, [known, 10 + known], 'Completa la pareja del 10.', `${known} + ${10 - known} = 10.`, `¿Qué número completa ${known} + ? = 10?`);
             }
-
             case 2: {
-                const tens = rand(2, 8) * 10;
-                const units = rand(3, 9);
-                const first = tens + units;
-                const toTen = 10 - units;
-                const second = rand(toTen + 1, 9);
-                const remainder = second - toTen;
-                const nextTen = tens + 10;
-                const result = first + second;
-                const variant = rand(1, 3);
-                const prompt = variant === 1
-                    ? `${first} + ${second}`
-                    : variant === 2
-                        ? `${first} + ${second} = ${nextTen} + ?`
-                        : `${first} + ? = ${result}`;
-                return exercise(
-                    2,
-                    prompt,
-                    variant === 1 ? result : variant === 2 ? remainder : second,
-                    `Primero completa la decena: ${first} + ${toTen} = ${nextTen}.`,
-                    `Del segundo número quedan ${remainder}; ${nextTen} + ${remainder} = ${result}.`
-                );
+                const toTen = 10 - value % 10;
+                return result(toTen, [toTen - 1, toTen + 1], 'Cuenta cuánto falta para llegar a la decena.', `Al unir ${value % 10} unidades con ${toTen} completas otra decena.`, `En ${value}, ¿cuántas unidades faltan para completar la siguiente decena?`);
             }
-
-            case 3: {
-                const pool = [6, 7, 8, 9, 12, 13, 14, 15, 16, 18, 24, 25, 35, 45];
-                const number = pool[rand(0, pool.length - 1)];
-                const double = number * 2;
-                const variant = rand(1, 3);
-                const prompt = variant === 1
-                    ? `${number} + ${number}`
-                    : variant === 2
-                        ? `? + ? = ${double}`
-                        : `${number} + ? = ${double}`;
-                return exercise(
-                    3,
-                    prompt,
-                    variant === 1 ? double : number,
-                    variant === 2
-                        ? `Busca la mitad de ${double}, porque deben aparecer dos cantidades iguales.`
-                        : `Calcula el doble de ${number} sumando esa cantidad dos veces.`,
-                    `${number} + ${number} = ${double}. La respuesta es ${variant === 1 ? double : number}.`
-                );
-            }
-
+            case 3:
+                return result(value * 2, [value * 2 - 2, value * 2 + 2], 'Suma el número dos veces.', `${value} + ${value} = ${value * 2}.`, `¿Cuál es el doble de ${value}?`);
             case 4: {
-                const tens = rand(3, 9) * 10;
-                const units = rand(1, 7);
-                const minuend = tens + units;
-                const subtrahend = rand(units + 1, 9);
-                const remainder = subtrahend - units;
-                const result = minuend - subtrahend;
-                const variant = rand(1, 3);
-                const prompt = variant === 1
-                    ? `${minuend} - ${subtrahend}`
-                    : variant === 2
-                        ? `${minuend} - ${subtrahend} = ${tens} - ?`
-                        : `${minuend} - ? = ${result}`;
-                return exercise(
-                    4,
-                    prompt,
-                    variant === 1 ? result : variant === 2 ? remainder : subtrahend,
-                    `Baja primero a la decena: ${minuend} - ${units} = ${tens}.`,
-                    `Ahora quita los ${remainder} restantes: ${tens} - ${remainder} = ${result}.`
-                );
+                const subtract = advanced ? 7 : 4;
+                return result(value - subtract, [value + subtract, value - subtract + 2], 'Cuenta hacia atrás o baja primero a la decena.', `${value} - ${subtract} = ${value - subtract}.`, `El candado muestra ${value} - ${subtract}. ¿Qué resultado aparece?`);
             }
-
-            case 5: {
-                const number = rand(6, 25);
-                const next = number + 1;
-                const double = number * 2;
-                const result = double + 1;
-                const variant = rand(1, 3);
-                const prompt = variant === 3
-                    ? `${number} + ? = ${result}`
-                    : Math.random() < 0.5
-                        ? `${next} + ${number}`
-                        : `${number} + ${next}`;
-                return exercise(
-                    5,
-                    prompt,
-                    variant === 3 ? next : result,
-                    `Los números ${number} y ${next} son consecutivos. Apóyate en el doble: ${number} + ${number} = ${double}.`,
-                    `Añade 1 al doble: ${double} + 1 = ${result}.`
-                );
-            }
-
-            case 6: {
-                const number = rand(14, 88);
-                const add = Math.random() < 0.5;
-                const bridge = rand(1, 3) === 3;
-                const sign = add ? '+' : '-';
-                const intermediate = add ? number + 10 : number - 10;
-                const result = add ? number + 9 : number - 9;
-                const bridgeSign = add ? '-' : '+';
-                return exercise(
-                    6,
-                    bridge ? `${number} ${sign} 9 = ${intermediate} ${bridgeSign} ?` : `${number} ${sign} 9`,
-                    bridge ? 1 : result,
-                    add
-                        ? `Para sumar 9, suma primero 10: ${number} + 10 = ${intermediate}.`
-                        : `Para restar 9, resta primero 10: ${number} - 10 = ${intermediate}.`,
-                    add
-                        ? `Compensa quitando 1: ${intermediate} - 1 = ${result}.`
-                        : `Compensa devolviendo 1: ${intermediate} + 1 = ${result}.`
-                );
-            }
-
-            case 7: {
-                const number = rand(15, 85);
-                const add = Math.random() < 0.5;
-                const bridge = rand(1, 3) === 3;
-                const intermediate = add ? number + 10 : number - 10;
-                const result = add ? number + 11 : number - 11;
-                return exercise(
-                    7,
-                    bridge
-                        ? `${number} ${add ? '+' : '-'} 11 = ${intermediate} ${add ? '+' : '-'} ?`
-                        : `${number} ${add ? '+' : '-'} 11`,
-                    bridge ? 1 : result,
-                    add
-                        ? `Descompón 11 en 10 + 1: ${number} + 10 = ${intermediate}.`
-                        : `Quita primero 10: ${number} - 10 = ${intermediate}.`,
-                    add
-                        ? `Añade el 1 restante: ${intermediate} + 1 = ${result}.`
-                        : `Quita el 1 restante: ${intermediate} - 1 = ${result}.`
-                );
-            }
-
-            case 8: {
-                const variant = rand(1, 4);
-
-                if (variant <= 2) {
-                    const known = variant === 1 ? rand(1, 9) * 10 : rand(12, 88);
-                    const answer = 100 - known;
-                    const missingFirst = Math.random() < 0.5;
-                    return exercise(
-                        8,
-                        missingFirst ? `? + ${known} = 100` : `${known} + ? = 100`,
-                        answer,
-                        `Completa primero la centena usando decenas y unidades.`,
-                        `${known} + ${answer} = 100. La pareja es ${answer}.`
-                    );
-                }
-
-                const a = rand(1, 5) * 10;
-                const b = rand(11, Math.min(39, 99 - a));
-                const knownTotal = a + b;
-                const answer = 100 - knownTotal;
-                const prompt = variant === 3
-                    ? `${a} + ${b} + ? = 100`
-                    : `? + ${a} + ${b} = 100`;
-                return exercise(
-                    8,
-                    prompt,
-                    answer,
-                    `Junta los sumandos conocidos: ${a} + ${b} = ${knownTotal}.`,
-                    `De ${knownTotal} a 100 faltan ${answer}.`
-                );
-            }
-
+            case 5:
+                return result(value * 2 + 1, [value * 2, value * 2 + 2], 'Dos consecutivos equivalen al doble del menor y uno más.', `${value} + ${value + 1} = ${value * 2 + 1}.`, `¿Cuánto es ${value} + ${value + 1}?`);
+            case 6:
+                return result(value + 9, [value + 8, value + 10], 'Suma 10 y compensa quitando 1.', `${value} + 10 - 1 = ${value + 9}.`, `¿Cuánto es ${value} + 9?`);
+            case 7:
+                return result(value + 11, [value + 10, value + 12], 'Descompón 11 en 10 + 1.', `${value} + 10 + 1 = ${value + 11}.`, `¿Cuánto es ${value} + 11?`);
+            case 8:
+                return result(100 - value, [90 - value, 110 - value], 'Busca el complemento hasta 100.', `${value} + ${100 - value} = 100.`, `¿Qué número completa ${value} + ? = 100?`);
             case 9: {
-                const tens = rand(1, 9) * 10;
-                const unitsPool = [1, 2, 3, 4, 6, 7, 8, 9];
-                const units = unitsPool[rand(0, unitsPool.length - 1)];
-                const number = tens + units;
-                const answer = units < 5 ? tens : tens + 10;
-                return exercise(
-                    9,
-                    `Aproxima ${number} a la decena más cercana.`,
-                    answer,
-                    `Mira la cifra de las unidades. Si es menor que 5, baja; si es mayor que 5, sube.`,
-                    `${number} está más cerca de ${answer}.`
-                );
+                const number = advanced ? value + 6 : value + 1;
+                const rounded = Math.round(number / 10) * 10;
+                return result(rounded, [rounded - 10, rounded + 10], 'Mira las unidades: 0-4 baja y 5-9 sube.', `${number} está más cerca de ${rounded}.`, `¿A qué decena se aproxima ${number}?`);
             }
-
             case 10: {
-                const aUnits = rand(5, 9);
-                const bUnits = rand(11 - aUnits, 9);
-                const a = rand(1, 7) * 10 + aUnits;
-                const b = rand(1, 4) * 10 + bUnits;
-                const unitsTotal = aUnits + bUnits;
-                const carriedTen = Math.floor(unitsTotal / 10);
-                const answer = a + b;
-                return exercise(
-                    10,
-                    `Calcula: ${a} + ${b}`,
-                    answer,
-                    `Suma las unidades: ${aUnits} + ${bUnits} = ${unitsTotal}. Deja ${unitsTotal % 10} y lleva ${carriedTen} decena.`,
-                    `Suma las decenas con la llevada; el resultado completo es ${answer}.`
-                );
+                const second = 5 + seed % 5;
+                return result(value + second, [value + second - 2, value + second + 2], 'Suma primero unidades, después las decenas.', `${value} + ${second} = ${value + second}.`, `¿Cuánto es ${value} + ${second}?`);
             }
-
             case 11: {
-                const hundreds = rand(2, 9);
-                const tens = rand(1, 8);
-                const units = rand(0, 4);
-                const subHundreds = rand(1, hundreds - 1);
-                const subTens = rand(0, tens - 1);
-                const subUnits = rand(units + 1, 9);
-                const minuend = hundreds * 100 + tens * 10 + units;
-                const subtrahend = subHundreds * 100 + subTens * 10 + subUnits;
-                const answer = minuend - subtrahend;
-                return exercise(
-                    11,
-                    `Calcula: ${minuend} - ${subtrahend}`,
-                    answer,
-                    `${units} no permite quitar ${subUnits}; toma una decena y calcula ${units + 10} - ${subUnits}.`,
-                    `Después resta las decenas, quitando la decena prestada, y las centenas. El resultado es ${answer}.`
-                );
+                const second = 5 + seed % 4;
+                return result(value - second, [value - second + 1, value - second - 1], 'Si hace falta, pide una decena.', `${value} - ${second} = ${value - second}.`, `El mural muestra ${value} - ${second}. ¿Cuál es el resultado?`);
             }
-
-            case 12: {
-                const base = rand(2, 9);
-                const factor = [10, 100, 1000][rand(0, 2)];
-                const zeroCount = factor === 10 ? 1 : factor === 100 ? 2 : 3;
-                const answer = base * factor;
-                return exercise(
-                    12,
-                    `${base} × ${factor}`,
-                    answer,
-                    `Multiplicar por ${factor} es escribir ${zeroCount} ${zeroCount === 1 ? 'cero' : 'ceros'} a la derecha de ${base}.`,
-                    `${base} × ${factor} = ${answer}.`
-                );
-            }
-
+            case 12:
+                return result(value * (advanced ? 100 : 10), [value * 10, value * 1000], 'Multiplicar por la unidad seguida de ceros desplaza el número.', `${value} × ${advanced ? 100 : 10} = ${value * (advanced ? 100 : 10)}.`, `¿Cuánto es ${value} × ${advanced ? 100 : 10}?`);
             case 13: {
-                const thousands = rand(1, 9);
-                const hundreds = rand(0, 9);
-                const tens = rand(0, 9);
-                const units = rand(0, 9);
-                const number = thousands * 1000 + hundreds * 100 + tens * 10 + units;
-                const variant = rand(1, 4);
-
-                if (variant === 1) {
-                    return exercise(
-                        13,
-                        `Descompón ${number} en UM, C, D y U. Usa el modelo 2UM + 3C + 4D + 5U.`,
-                        `${thousands}UM + ${hundreds}C + ${tens}D + ${units}U`,
-                        `Identifica el valor de posición de cada cifra, empezando por las unidades de millar.`,
-                        `${number} = ${thousands}000 + ${hundreds}00 + ${tens}0 + ${units}.`
-                    );
-                }
-
-                if (variant === 2) {
-                    const baseHundreds = thousands * 10 + hundreds;
-                    const answer = tens < 5
-                        ? baseHundreds * 100
-                        : (baseHundreds + 1) * 100;
-                    return exercise(
-                        13,
-                        `Aproxima ${number} a la centena más cercana.`,
-                        answer,
-                        `Mira las decenas. Menos de 5 mantiene la centena; desde 5 aumenta una centena.`,
-                        `${number} se aproxima a ${answer}.`
-                    );
-                }
-
-                if (variant === 3) {
-                    const difference = rand(1, Math.min(900, number - 1));
-                    const smaller = number - difference;
-                    return exercise(
-                        13,
-                        `¿Qué signo completa la comparación: ${smaller} ? ${number}? Escribe <, = o >.`,
-                        '<',
-                        `Compara las cifras de izquierda a derecha. Empieza por unidades de millar.`,
-                        `${smaller} es menor que ${number}, por eso se usa <.`
-                    );
-                }
-
-                const step = [10, 20, 50, 100][rand(0, 3)];
-                const next = number + step;
-                return exercise(
-                    13,
-                    `Completa la serie: ${number}, ${next}, ${next + step}, ?`,
-                    next + step * 2,
-                    `Busca cuánto aumenta cada número: ${step}.`,
-                    `${next + step} + ${step} = ${next + step * 2}.`
-                );
+                const step = advanced ? 10 : 2;
+                const next = value + step * 3;
+                return result(next, [next - step, next + step], `La serie avanza de ${step} en ${step}.`, `${value + step * 2} + ${step} = ${next}.`, `Completa: ${value}, ${value + step}, ${value + step * 2}, ?`);
             }
-
             case 14: {
-                const variant = rand(1, 4);
-
-                if (variant === 1) {
-                    const a = rand(1200, 4800);
-                    const b = rand(1100, 4500);
-                    const answer = a + b;
-                    return exercise(
-                        14,
-                        `${a} + ${b}`,
-                        answer,
-                        `Coloca unidades con unidades, decenas con decenas, centenas con centenas y millares con millares.`,
-                        `Suma por columnas desde la derecha, recordando las llevadas. El total es ${answer}.`
-                    );
-                }
-
-                if (variant === 2) {
-                    const a = rand(3000, 8900);
-                    const b = rand(1000, a - 500);
-                    const answer = a - b;
-                    return exercise(
-                        14,
-                        `${a} - ${b}`,
-                        answer,
-                        `Resta desde las unidades. Si hace falta, toma una unidad del orden anterior.`,
-                        `La diferencia entre ${a} y ${b} es ${answer}.`
-                    );
-                }
-
-                if (variant === 3) {
-                    const bought = rand(400, 2900);
-                    const received = rand(300, 1900);
-                    const has = rand(3000, 6000);
-                    const final = has - bought + received;
-                    return exercise(
-                        14,
-                        `Un dragón tiene ${has} monedas. Compra materiales por ${bought} y recibe ${received} monedas. ¿Cuántas le quedan?`,
-                        final,
-                        `Sigue los cambios en dos pasos: primero gasta, después recibe.`,
-                        `${has} - ${bought} + ${received} = ${final} monedas.`
-                    );
-                }
-
-                const total = rand(2500, 8000);
-                const known = rand(500, total - 500);
-                const answer = total - known;
-                return exercise(
-                    14,
-                    `${known} + ? = ${total}`,
-                    answer,
-                    `Para encontrar la parte desconocida, resta la parte conocida al total.`,
-                    `${total} - ${known} = ${answer}.`
-                );
+                const second = 3 + seed % 7;
+                return result(value + second, [value + second - 1, value + second + 1], 'Agrupa unidades y decenas.', `${value} + ${second} = ${value + second}.`, `¿Qué número abre el cofre: ${value} + ${second}?`);
             }
-
-            case 15: {
-                const variant = rand(1, 6);
-
-                if (variant === 1) {
-                    const degrees = [30, 45, 60, 90, 110, 135, 160][rand(0, 6)];
-                    const answer = degrees === 90 ? 'recto' : degrees < 90 ? 'agudo' : 'obtuso';
-                    return exercise(
-                        15,
-                        `Un ángulo mide ${degrees}°. ¿Es agudo, recto u obtuso?`,
-                        answer,
-                        `Recuerda: un ángulo recto mide 90°. Un agudo mide menos y un obtuso mide más.`,
-                        `${degrees}° corresponde a un ángulo ${answer}.`
-                    );
-                }
-
-                if (variant === 2) {
-                    return exercise(
-                        15,
-                        '¿Cómo se llaman las rectas que nunca se cruzan?',
-                        'paralelas',
-                        'Piensa en las dos orillas de una carretera: mantienen siempre la misma distancia.',
-                        'Las rectas que nunca se cruzan son paralelas.'
-                    );
-                }
-
-                if (variant === 3) {
-                    return exercise(
-                        15,
-                        '¿Cómo se llaman las rectas que se cortan formando ángulos rectos?',
-                        'perpendiculares',
-                        'Cada ángulo recto mide 90°.',
-                        'Las rectas que forman ángulos rectos al cruzarse son perpendiculares.'
-                    );
-                }
-
-                if (variant === 4) {
-                    return exercise(
-                        15,
-                        '¿Cuántos ángulos rectos forman dos rectas perpendiculares? Escribe solo el número.',
-                        4,
-                        'Dibuja el cruce de una +: aparecen cuatro regiones iguales.',
-                        'Dos rectas perpendiculares forman 4 ángulos rectos.'
-                    );
-                }
-
-                if (variant === 5) {
-                    return exercise(
-                        15,
-                        'Si una figura se copia cambiándola de posición sin girarla, ¿cómo se llama ese movimiento?',
-                        'traslacion',
-                        'La figura conserva su forma, tamaño y orientación.',
-                        'Cambiar una figura de posición sin girarla es una traslación.'
-                    );
-                }
-
-                return exercise(
-                    15,
-                    '¿Cuántos ejes de simetría tiene un cuadrado? Escribe solo el número.',
-                    4,
-                    'Al doblar por un eje de simetría, las dos partes coinciden exactamente.',
-                    'Un cuadrado tiene 4 ejes de simetría.'
-                );
-            }
-
+            case 15:
+                return result('90', ['45', '180'], 'Un ángulo recto mide 90 grados.', 'La apertura de un ángulo recto es de 90°.', '¿Cuántos grados mide un ángulo recto?');
             case 16: {
-                const factor = rand(2, 9);
-                const times = rand(2, 9);
-                const product = factor * times;
-                const variant = rand(1, 4);
-
-                if (variant === 1) {
-                    return exercise(
-                        16,
-                        `${factor} × ${times}`,
-                        product,
-                        `Interpreta la multiplicación como ${times} grupos iguales de ${factor}.`,
-                        `${factor} × ${times} = ${product}.`
-                    );
-                }
-
-                if (variant === 2) {
-                    return exercise(
-                        16,
-                        `Escribe el factor que falta: ? × ${times} = ${product}.`,
-                        factor,
-                        `Busca qué número repetido ${times} veces da ${product}.`,
-                        `${factor} × ${times} = ${product}.`
-                    );
-                }
-
-                if (variant === 3) {
-                    const sum = Array(times).fill(factor).join(' + ');
-                    return exercise(
-                        16,
-                        `¿Cuántas veces se repite el ${factor} en ${sum}?`,
-                        times,
-                        `Cuenta el número de sumandos iguales.`,
-                        `El ${factor} aparece ${times} veces: ${times} × ${factor} = ${product}.`
-                    );
-                }
-
-                const groups = rand(3, 8);
-                const each = rand(2, 9);
-                return exercise(
-                    16,
-                    `Hay ${groups} cofres con ${each} gemas en cada uno. ¿Cuántas gemas hay?`,
-                    groups * each,
-                    `Todos los cofres tienen la misma cantidad; multiplica grupos por elementos.`,
-                    `${groups} × ${each} = ${groups * each} gemas.`
-                );
+                const factor = 2 + seed % 5;
+                const product = factor * (advanced ? 6 : 3);
+                return result(product, [product - factor, product + factor], 'La multiplicación repite grupos iguales.', `${factor} × ${advanced ? 6 : 3} = ${product}.`, `¿Cuánto es ${factor} × ${advanced ? 6 : 3}?`);
             }
-
             case 101: {
-                const hundreds = rand(1, 9);
-                const tens = rand(0, 9);
-                const units = rand(0, 9);
-                const number = hundreds * 100 + tens * 10 + units;
-                return exercise(
-                    101,
-                    `Descompón ${number}. Usa el modelo 4C + 2D + 7U.`,
-                    `${hundreds}C + ${tens}D + ${units}U`,
-                    `Las centenas indican grupos de 100, las decenas grupos de 10 y las unidades quedan sueltas.`,
-                    `${number} = ${hundreds * 100} + ${tens * 10} + ${units} = ${hundreds}C + ${tens}D + ${units}U.`
-                );
+                const hundreds = advanced ? 3 : 2;
+                const total = hundreds * 100 + value;
+                return result(hundreds, [hundreds - 1, hundreds + 1], 'Mira la cifra de las centenas.', `En ${total}, la cifra de las centenas es ${hundreds}.`, `En ${total}, ¿cuántas centenas hay?`);
             }
-
             case 102: {
-                const step = [2, 5, 10][rand(0, 2)];
-                const start = rand(1, 5) * step;
-                const third = start + step * 2;
-                const answer = start + step * 3;
-                return exercise(
-                    102,
-                    `Completa la serie: ${start}, ${start + step}, ${third}, ?`,
-                    answer,
-                    `Observa el salto entre los números. La serie aumenta de ${step} en ${step}.`,
-                    `${third} + ${step} = ${answer}.`
-                );
+                const step = advanced ? 5 : 2;
+                return result(value + step * 3, [value + step * 2, value + step * 4], `La serie avanza de ${step} en ${step}.`, `Después de ${value}, los saltos terminan en ${value + step * 3}.`, `Completa la serie: ${value}, ${value + step}, ${value + step * 2}, ?`);
             }
-
             default:
-                return generateByStrategy(1);
+                return mathEnigma(1, level, recovery2, seed);
         }
     }
 
-    window.DragonApp.Generator = { generateByStrategy };
-    window.DragonApp.GeneratorMath = { generateByStrategy };
+    function languageEnigma(strategyId, level, recovery2, seed) {
+        const index = seed % 4;
+        const simple = level === 1 || recovery2;
+        switch (Number(strategyId)) {
+            case 1: {
+                const item = [
+                    ['__eso', 'qu', 'queso'],
+                    ['__ina', 'qu', 'quina'],
+                    ['_opa', 'c', 'copa'],
+                    ['cara_ol', 'c', 'caracol']
+                ][index];
+                validateSpellingMask(item);
+                return result(item[1], ['c', 'qu', 'gu'], 'Usa «qu» antes de e/i y «c» antes de a/o/u.', `La forma correcta es «${item[2]}».`, `¿Qué letras completan «${item[0]}»?`);
+            }
+            case 2: {
+                const item = [
+                    ['pin__ino', 'gü', 'pingüino'],
+                    ['ci__eña', 'gü', 'cigüeña'],
+                    ['man__era', 'gu', 'manguera'],
+                    ['__itarra', 'gu', 'guitarra']
+                ][index];
+                validateSpellingMask(item);
+                return result(item[1], ['g', 'gu', 'gü'], 'Usa diéresis si la u debe sonar.', `La forma correcta es «${item[2]}».`, `¿Qué letras completan «${item[0]}»?`);
+            }
+            case 3:
+                return result('Marta', ['marta', 'MARTA.'], 'Los nombres propios empiezan con mayúscula.', 'Marta se escribe con mayúscula inicial.', '¿Cómo se escribe correctamente el nombre propio Marta en una oración?');
+            case 4: {
+                const pairs = [
+                    ['alegre', 'contento'], ['rápido', 'veloz'], ['alto', 'bajo'], ['encender', 'apagar']
+                ];
+                const pair = pairs[index];
+                const relation = index < 2 ? 'sinónimo' : 'antónimo';
+                return result(pair[1], [pair[0], 'redondo'], `Busca el ${relation} de «${pair[0]}».`, `«${pair[1]}» es el ${relation} de «${pair[0]}».`, `¿Cuál es un ${relation} de «${pair[0]}»?`);
+            }
+            case 5: {
+                const item = simple ? ['sol', 'casa', 'camisa', 'mariposa'][index] : ['café', 'árbol', 'música', 'pájaro'][index];
+                const syllableCounts = {
+                    sol: 1, casa: 2, camisa: 3, mariposa: 4,
+                    café: 2, árbol: 2, música: 3, pájaro: 3
+                };
+                const count = syllableCounts[item];
+                return result(count, [count - 1, count + 1], 'Separa la palabra en sílabas con palmadas.', `${item} tiene ${count} sílabas.`, `¿Cuántas sílabas tiene «${item}»?`);
+            }
+            case 6:
+                return result('Alicia', ['ellas', 'vosotros'], 'Un nombre propio identifica a una persona concreta.', 'Alicia es un nombre propio de la relación.', '¿Cuál de estas opciones es un nombre propio?');
+            case 7:
+                return result('brillante', ['corre', 'estrella'], 'El adjetivo explica cómo es un sustantivo.', 'Brillante describe una cualidad.', 'En «la llave brillante», ¿qué palabra es el adjetivo?');
+            case 8:
+                return result('resuelve', ['castillo', 'brillante'], 'El verbo expresa una acción o proceso.', '«Resuelve» indica una acción.', '¿Qué palabra es un verbo?');
+            case 9:
+                return result('interrogativa', ['exclamativa', 'enunciativa'], 'La pregunta pide información y lleva signos de interrogación.', 'La frase es una oración interrogativa.', '¿Qué tipo de oración es «¿Dónde está la pista?»?');
+            case 10:
+                return result('¿Dónde está la llave?', ['Donde está la llave.', '¡Dónde está la llave!'], 'Una pregunta empieza con ¿ y termina con ?.', 'La interrogación necesita signos inicial y final.', '¿Qué oración está puntuada correctamente?');
+            case 11:
+                return result('panadero', ['panal', 'mano'], 'Una familia comparte la misma raíz.', 'Panadero pertenece a la familia de pan.', '¿Qué palabra pertenece a la familia de «pan»?');
+            case 12:
+                return result('Primero buscaron la llave. Después abrieron el cofre.', ['Después abrieron el cofre. Primero buscaron la llave.', 'Buscaron llave cofre después.'], 'Los conectores primero/después ordenan las acciones.', 'Primero se busca y después se abre.', '¿Qué secuencia está ordenada?');
+            default:
+                return languageEnigma(3, level, recovery2, seed);
+        }
+    }
+
+    function validateSpellingMask([mask, missing, complete]) {
+        const blank = '_'.repeat(Array.from(missing).length);
+        if (!mask.includes(blank) || mask.replace(blank, missing) !== complete) {
+            throw new Error(`La máscara ortográfica no coincide con «${complete}»: «${mask}»`);
+        }
+    }
+
+    function getMasteredSkill(mastered, seed) {
+        const valid = mastered.filter(item => item
+            && (item.subject === 'math' || item.subject === 'lengua')
+            && Number.isFinite(Number(item.strategyId)));
+        if (!valid.length) return { subject: 'math', strategyId: 1 };
+        return valid[(seed - 1) % valid.length];
+    }
+
+    function buildEnigma(settings, index) {
+        const skill = getMasteredSkill(settings.mastered, settings.questionNumber + index);
+        return skill.subject === 'lengua'
+            ? languageEnigma(skill.strategyId, settings.level, settings.recovery2, index)
+            : mathEnigma(skill.strategyId, settings.level, settings.recovery2, index);
+    }
+
+    function exercise(strategyId, settings, story, enigma) {
+        const members = story.participants.length > 2
+            ? `${story.participants.slice(0, -1).join(', ')} y ${story.participants[story.participants.length - 1]}`
+            : story.participants.join(' y ');
+        const beat = story.beats[(settings.questionNumber - 1) % story.beats.length];
+        const template = settings.questionNumber <= 10
+            ? `${members} llegan a ${story.location}. ${beat} En el objeto aparece esta pista: {ENIGMA_1}`
+            : `El misterio de ${story.location} está a punto de resolverse. ${beat} Para seguir, el grupo descifra esta pista: {ENIGMA_2}`;
+        const placeholder = settings.questionNumber <= 10 ? '{ENIGMA_1}' : '{ENIGMA_2}';
+
+        return {
+            strategyId: Number(strategyId),
+            level: settings.level,
+            questionNumber: settings.questionNumber,
+            recovery2: settings.recovery2,
+            prompt: `${template.replace(placeholder, enigma.prompt)}`,
+            text: `${beat} El equipo comparte la pista antes de responder.`,
+            answer: String(enigma.answer),
+            options: enigma.options,
+            paso1: enigma.paso1,
+            paso2: enigma.paso2,
+            participants: story.participants,
+            participantGender: story.participants.map(name => ({
+                name,
+                gender: studentGender[name]
+            })),
+            sceneStep: settings.questionNumber,
+            storyTitle: story.title
+        };
+    }
+
+    function generateByStrategy(strategyId, options = {}) {
+        const settings = resolveOptions(options);
+        const id = Number(strategyId);
+        switch (id) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+                return exercise(id, settings, stories[id], buildEnigma(settings, id));
+            default:
+                return exercise(1, settings, stories[1], buildEnigma(settings, 1));
+        }
+    }
+
+    function getMysteryStoriesList() {
+        return Object.entries(stories).map(([id, story]) => ({
+            id: Number(id),
+            title: story.title,
+            participants: story.participants
+        }));
+    }
+
+    window.DragonApp.Generator = {
+        generateByStrategy,
+        getMysteryStoriesList
+    };
+    window.DragonApp.GeneratorMystery = window.DragonApp.Generator;
 })();
