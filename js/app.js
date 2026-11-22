@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const Storage = window.DragonApp.Storage;
     const MathGenerator = window.DragonApp.GeneratorMath;
     const LanguageGenerator = window.DragonApp.GeneratorLengua;
+    const MysteryGenerator = window.DragonApp.GeneratorMystery;
     const SESSION_LENGTH = 20;
 
     const categories = {
@@ -37,7 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
             [9, 'Tipos de oración', 'Enunciativa, interrogativa y exclamativa'],
             [10, 'Puntuación', 'Punto, coma y signos de interrogación y exclamación'],
             [11, 'Familias de palabras', 'Palabras derivadas de una primitiva'],
-            [12, 'Coherencia y cohesión', 'Ordena ideas y evita repeticiones']
+            [12, 'Coherencia y cohesión', 'Ordena ideas y evita repeticiones'],
+            [13, 'Ortografía MB / MP', 'Antes de b y p se escribe m'],
+            [14, 'Ortografía Z / D final', 'Distingue la letra final y su plural']
         ]
     };
 
@@ -50,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         app: document.getElementById('app'),
         nameInput: document.getElementById('student-name-input'),
         hubName: document.getElementById('hub-student-name'),
+        mysteryUnlockStatus: document.getElementById('mystery-unlock-status'),
         nameLabel: document.getElementById('student-name-label'),
         editName: document.getElementById('btn-edit-name'),
         recoveryBadge: document.getElementById('hub-rec-badge'),
@@ -100,12 +104,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderIdentity() {
         const data = Storage.getData();
+        const unlock = Storage.getStoryUnlockStatus(data);
         const hasName = Boolean(data.name);
         elements.hubName.textContent = data.name;
         elements.nameLabel.textContent = data.name;
         elements.nameLabel.hidden = !hasName;
         elements.editName.hidden = !hasName;
         elements.recoveryBadge.hidden = !data.modoRecuperacion;
+        elements.mysteryUnlockStatus.textContent = unlock.canCreate
+            ? `${unlock.unlockedStories} historia${unlock.unlockedStories === 1 ? '' : 's'} disponible${unlock.unlockedStories === 1 ? '' : 's'}. ${storyProgressMessage(unlock)}`
+            : storyProgressMessage(unlock);
     }
 
     function start() {
@@ -155,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.exerciseIndex = 0;
         state.score = 0;
         state.exercise = null;
+        state.completionRecorded = false;
         showView('practice', state.subject);
         nextExercise();
     }
@@ -168,8 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.exerciseIndex += 1;
         state.answered = false;
         state.exercise = state.subject === 'math'
-            ? MathGenerator.generateByStrategy(state.categoryId)
-            : LanguageGenerator.generateByStrategy(state.categoryId);
+            ? MathGenerator.generateByStrategy(state.categoryId, { questionNumber: state.exerciseIndex })
+            : LanguageGenerator.generateByStrategy(state.categoryId, { questionNumber: state.exerciseIndex });
         renderExercise();
     }
 
@@ -258,9 +267,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } else {
             elements.options.className = 'options-grid';
-            elements.answerInput.focus();
         }
         lockAnswers(false);
+        if (!hasOptions) {
+            focusAnswerInput();
+        }
+    }
+
+    function focusAnswerInput() {
+        requestAnimationFrame(() => {
+            if (!elements.answerForm.hidden && !elements.answerInput.disabled) {
+                elements.answerInput.focus();
+                elements.answerInput.select();
+            }
+        });
     }
 
     function checkAnswer(answer) {
@@ -307,6 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function finishSession() {
+        if (!state.completionRecorded) {
+            Storage.completeActivity(state.subject, state.categoryId, state.score, SESSION_LENGTH);
+            state.completionRecorded = true;
+        }
+        const unlock = Storage.getStoryUnlockStatus();
         state.answered = true;
         elements.progress.textContent = 'Sesión completada';
         elements.practiceCategory.textContent = state.categoryName;
@@ -318,12 +343,36 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.feedback.innerHTML = `
             <h2>¡Buen trabajo, ${escapeHtml(Storage.getData().name)}!</h2>
             <p>Has acertado <strong>${state.score} de ${SESSION_LENGTH}</strong> ejercicios.</p>
+            <p>${escapeHtml(activityUnlockMessage(unlock, state.score))}</p>
             <button id="btn-finish-session" class="action-btn primary" type="button">Elegir otra categoría</button>
         `;
         document.getElementById('btn-finish-session').addEventListener('click', () => {
             renderCategories();
             showView('categories', state.subject);
         });
+    }
+
+    function storyProgressMessage(status) {
+        const parts = [];
+        if (status.missingMath) {
+            parts.push(`${status.missingMath} actividad${status.missingMath === 1 ? '' : 'es'} de Matemáticas`);
+        }
+        if (status.missingLanguage) {
+            parts.push(`${status.missingLanguage} actividad${status.missingLanguage === 1 ? '' : 'es'} de Lengua`);
+        }
+        if (!parts.length) {
+            return '¡Ya puedes crear una nueva historia de misterio!';
+        }
+        return `¡Casi lo tienes! Aún te faltan ${parts.join(' y ')}.`;
+    }
+
+    function activityUnlockMessage(status, score) {
+        if (score < Math.ceil(SESSION_LENGTH * 0.8)) {
+            return `${storyProgressMessage(status)} Supera una actividad al 80 % para avanzar hacia tu próxima historia.`;
+        }
+        return status.nextStoryReady || status.canCreate
+            ? `¡Actividad superada! Ya puedes crear una historia de misterio. ${storyProgressMessage(status)}`
+            : `¡Actividad superada! ${storyProgressMessage(status)}`;
     }
 
     function escapeHtml(value) {
@@ -337,8 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStorySelector() {
         const selector = document.getElementById('mystery-story-selector');
+        const unlock = Storage.getStoryUnlockStatus();
         selector.replaceChildren();
-        LanguageGenerator.getMysteryStoriesList().forEach(story => {
+        MysteryGenerator.getMysteryStoriesList().slice(0, unlock.unlockedStories).forEach(story => {
             const option = document.createElement('option');
             option.value = String(story.id);
             option.textContent = story.title;
@@ -348,41 +398,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openMystery() {
+        const data = Storage.getData();
+        const unlock = Storage.getStoryUnlockStatus(data);
+        if (!unlock.canCreate) {
+            alert(storyProgressMessage(unlock));
+            showView('hub');
+            return;
+        }
+        const unlockedIds = Array.from({ length: unlock.unlockedStories }, (_, index) => index + 1);
+        state.mysteryStoryId = unlockedIds.find(id => Number(data.misterioProgreso[id]) < 20) || unlockedIds[0];
         renderStorySelector();
         renderMystery();
         showView('mystery', 'mystery');
     }
 
     function renderMystery() {
-        const progress = Storage.getData().misterioProgreso[state.mysteryStoryId] || 0;
-        const paragraph = LanguageGenerator.getMysteryParagraph(state.mysteryStoryId, progress);
-        document.getElementById('mystery-title').textContent = paragraph.storyTitle;
-        document.getElementById('mystery-step').textContent = `Párrafo ${paragraph.paragraphNumber} de ${paragraph.totalParagraphs}`;
-        document.getElementById('mystery-text').textContent = paragraph.text;
-        document.getElementById('mystery-prompt').textContent = paragraph.prompt;
+        const data = Storage.getData();
+        const progress = Number(data.misterioProgreso[state.mysteryStoryId]) || 0;
+        const story = MysteryGenerator.getMysteryStoriesList().find(item => item.id === state.mysteryStoryId);
+        const question = MysteryGenerator.generateByStrategy(state.mysteryStoryId, {
+            questionNumber: Math.min(20, progress + 1),
+            recovery2: data.modoRecuperacion,
+            masteredStrategies: Storage.getMasteredStrategies(data)
+        });
+        document.getElementById('mystery-title').textContent = story.title;
+        document.getElementById('mystery-step').textContent = `Pantalla ${Math.min(20, progress + 1)} de 20`;
+        document.getElementById('mystery-text').textContent = question.text;
+        document.getElementById('mystery-prompt').textContent = question.prompt;
         const feedback = document.getElementById('mystery-feedback');
         feedback.hidden = true;
         const container = document.getElementById('mystery-options');
         container.replaceChildren();
-        paragraph.options.forEach(optionValue => {
+        if (progress >= 20) {
+            feedback.hidden = false;
+            feedback.className = 'feedback-box success';
+            feedback.innerHTML = `
+                <h2>🏆 ¡Misterio resuelto!</h2>
+                <p>Has completado las 20 pantallas de esta aventura.</p>
+                <button id="btn-mystery-finished" class="action-btn primary" type="button">Volver al menú</button>
+            `;
+            document.getElementById('btn-mystery-finished').addEventListener('click', () => showView('hub'));
+            return;
+        }
+        question.options.forEach(optionValue => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'option-btn';
             button.textContent = optionValue;
-            button.addEventListener('click', () => answerMystery(optionValue, paragraph, progress));
+            button.addEventListener('click', () => answerMystery(optionValue, question, progress));
             container.appendChild(button);
         });
     }
 
-    function answerMystery(answer, paragraph, currentIndex) {
-        const correct = normalizeAnswer(answer) === normalizeAnswer(paragraph.answer);
+    function answerMystery(answer, question, currentIndex) {
+        const correct = normalizeAnswer(answer) === normalizeAnswer(question.answer);
         const feedback = document.getElementById('mystery-feedback');
         feedback.hidden = false;
         feedback.className = `feedback-box ${correct ? 'success' : 'error'}`;
         if (!correct) {
             feedback.innerHTML = `
                 <h2>🔎 Atiende al detalle</h2>
-                <p>${escapeHtml(paragraph.paso1)}</p>
+                <p>${escapeHtml(question.paso1)}</p>
                 <button id="btn-retry-mystery" class="action-btn primary" type="button">Releer y repetir</button>
             `;
             document.getElementById('btn-retry-mystery').addEventListener('click', renderMystery);
@@ -391,10 +467,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nextIndex = currentIndex + 1;
         Storage.updateMysteryProgress(state.mysteryStoryId, nextIndex);
-        const completed = nextIndex >= paragraph.totalParagraphs;
+        const completed = nextIndex >= 20;
         feedback.innerHTML = completed
-            ? `<h2>🏆 ¡Misterio resuelto!</h2><p>${escapeHtml(paragraph.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Volver al menú</button>`
-            : `<h2>✨ ¡Pista encontrada!</h2><p>${escapeHtml(paragraph.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Siguiente párrafo</button>`;
+            ? `<h2>🏆 ¡Misterio resuelto!</h2><p>${escapeHtml(question.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Volver al menú</button>`
+            : `<h2>✨ ¡Pista encontrada!</h2><p>${escapeHtml(question.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Siguiente pantalla</button>`;
         document.getElementById('btn-mystery-continue').addEventListener('click', () => completed ? showView('hub') : renderMystery());
     }
 

@@ -157,6 +157,313 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
     .teacher-actions { align-items: stretch; flex-direction: column; }
 }
 
+/* Responsive layout for netbooks, tablets and large classroom displays */
+.container {
+    width: min(1120px, calc(100% - 2rem));
+}
+
+h1 {
+    font-size: clamp(1.45rem, 3.2vw, 2.35rem);
+}
+
+.prompt-box {
+    font-size: clamp(1.15rem, 2.8vw, 1.9rem);
+}
+
+.option-btn,
+.action-btn,
+.header-btn,
+.text-btn,
+.drag-word {
+    min-height: 44px;
+}
+
+@media (max-width: 1024px) {
+    .container {
+        width: min(940px, calc(100% - 1.5rem));
+        margin: 1rem auto 1.5rem;
+    }
+
+    .app-header {
+        min-height: 56px;
+        padding: 0.45rem 1rem;
+    }
+
+    .logo-btn {
+        font-size: clamp(1rem, 2.6vw, 1.25rem);
+    }
+
+    .header-btn {
+        min-height: 40px;
+        padding: 0.45rem 0.65rem;
+    }
+
+    .view-card {
+        padding: clamp(0.9rem, 2.5vw, 1.5rem);
+        border-radius: 16px;
+    }
+
+    .view-toolbar {
+        margin-bottom: 0.9rem;
+    }
+
+    .hub-grid {
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .subject-card {
+        min-height: 155px;
+        padding: 1rem;
+    }
+
+    .category-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.65rem;
+        margin-top: 1rem;
+    }
+
+    .category-btn {
+        min-height: 92px;
+        padding: 0.85rem;
+    }
+
+    .practice-card {
+        min-height: 0;
+    }
+
+    .prompt-box {
+        margin: 0.75rem 0;
+        padding: clamp(0.75rem, 2vw, 1.15rem) 0.75rem;
+        line-height: 1.25;
+    }
+
+    .options-grid {
+        gap: 0.55rem;
+    }
+
+    .option-btn {
+        min-height: 52px;
+        padding: 0.65rem;
+    }
+
+    .feedback-box {
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .feedback-box p {
+        margin-bottom: 0.35rem;
+    }
+
+    .drag-workspace {
+        gap: 0.55rem;
+    }
+
+    .drag-drop-zone {
+        min-height: 58px;
+    }
+
+    .drag-word-bank {
+        gap: 0.45rem;
+    }
+
+    .drag-word {
+        min-height: 44px;
+        min-width: 76px;
+        padding: 0.55rem 0.75rem;
+        box-shadow: none;
+    }
+
+    .story-card {
+        margin: 0.75rem 0;
+        padding: 0.85rem 1rem;
+        line-height: 1.45;
+    }
+}
+
+@media (max-height: 680px) {
+    .app-header {
+        min-height: 48px;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+        box-shadow: none;
+    }
+
+    .container {
+        margin-top: 0.65rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .name-view {
+        margin-top: 2vh;
+    }
+
+    .name-form {
+        gap: 0.55rem;
+        margin-top: 0.75rem;
+    }
+
+    .view-card {
+        padding: 0.75rem 1rem;
+    }
+
+    .view-toolbar {
+        margin-bottom: 0.55rem;
+    }
+
+    h1 {
+        margin-bottom: 0.45rem;
+    }
+
+    .eyebrow {
+        margin-bottom: 0.25rem;
+    }
+
+    .subject-card {
+        min-height: 120px;
+        padding: 0.75rem;
+    }
+
+    .subject-icon {
+        font-size: 1.65rem;
+    }
+
+    .category-grid {
+        grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    }
+
+    .category-btn {
+        min-height: 72px;
+        padding: 0.55rem 0.65rem;
+    }
+
+    .category-btn strong {
+        margin-bottom: 0.2rem;
+        font-size: 0.95rem;
+    }
+
+    .prompt-box {
+        margin: 0.5rem 0;
+        padding: 0.65rem;
+        font-size: clamp(1.05rem, 2.4vw, 1.55rem);
+    }
+
+    .options-grid {
+        gap: 0.4rem;
+    }
+
+    .option-btn,
+    .action-btn,
+    .drag-drop-zone,
+    .drag-word {
+        min-height: 44px;
+    }
+
+    .option-btn {
+        padding: 0.55rem 0.65rem;
+        font-size: 0.95rem;
+    }
+
+    input,
+    select {
+        min-height: 44px;
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+    }
+
+    .feedback-box {
+        margin-top: 0.5rem;
+        padding: 0.55rem 0.65rem;
+    }
+
+    .feedback-box h2,
+    .feedback-box h3 {
+        margin-bottom: 0.25rem;
+        font-size: 1rem;
+    }
+
+    .drag-workspace {
+        gap: 0.35rem;
+    }
+
+    .drag-drop-zone {
+        font-size: 1rem;
+    }
+
+    .story-card {
+        margin: 0.45rem 0;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.98rem;
+        line-height: 1.35;
+    }
+}
+
+@media (max-width: 800px) and (orientation: portrait) {
+    .hub-grid,
+    .category-grid,
+    .teacher-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats-box {
+        grid-column: 1 / -1;
+    }
+
+    .subject-card {
+        min-height: 150px;
+    }
+}
+
+@media (max-width: 800px) and (orientation: landscape) {
+    .container {
+        width: calc(100% - 1rem);
+    }
+
+    .hub-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .subject-card {
+        min-height: 105px;
+    }
+
+    .subject-icon {
+        font-size: 1.45rem;
+    }
+
+    .category-grid {
+        grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    }
+
+    .options-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .drag-word-bank {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 0.15rem;
+    }
+}
+
+@media (min-width: 1025px) {
+    .view-card {
+        max-width: 1120px;
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .practice-card {
+        min-height: min(560px, calc(100vh - 150px));
+    }
+
+    .options-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; }
 }

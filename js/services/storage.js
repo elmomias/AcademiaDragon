@@ -11,7 +11,8 @@ window.DragonApp = window.DragonApp || {};
             progresoMath: {},
             progresoLengua: {},
             misterioProgreso: {},
-            sesiones: []
+            sesiones: [],
+            actividadesCompletadas: []
         };
     }
 
@@ -32,7 +33,10 @@ window.DragonApp = window.DragonApp || {};
             progresoMath: source.progresoMath && typeof source.progresoMath === 'object' ? source.progresoMath : {},
             progresoLengua: source.progresoLengua && typeof source.progresoLengua === 'object' ? source.progresoLengua : {},
             misterioProgreso: source.misterioProgreso && typeof source.misterioProgreso === 'object' ? source.misterioProgreso : {},
-            sesiones: Array.isArray(source.sesiones) ? source.sesiones : []
+            sesiones: Array.isArray(source.sesiones) ? source.sesiones : [],
+            actividadesCompletadas: Array.isArray(source.actividadesCompletadas)
+                ? source.actividadesCompletadas
+                : []
         };
     }
 
@@ -105,6 +109,55 @@ window.DragonApp = window.DragonApp || {};
         return saveData(data);
     }
 
+    function completeActivity(subject, strategyId, score, total) {
+        const data = getData();
+        const safeTotal = Math.max(1, Number(total) || 1);
+        const safeScore = Math.max(0, Math.min(safeTotal, Number(score) || 0));
+        data.actividadesCompletadas.push({
+            fecha: new Date().toISOString(),
+            subject: subject === 'lengua' ? 'lengua' : 'math',
+            strategyId: Number(strategyId),
+            score: safeScore,
+            total: safeTotal,
+            superada: safeScore / safeTotal >= 0.8
+        });
+        return saveData(data);
+    }
+
+    function getPassedActivities(data = getData()) {
+        return (data.actividadesCompletadas || []).filter(activity => activity.superada);
+    }
+
+    function getStoryUnlockStatus(data = getData()) {
+        const passed = getPassedActivities(data);
+        const mathActivities = passed.filter(activity => activity.subject === 'math').length;
+        const languageActivities = passed.filter(activity => activity.subject === 'lengua').length;
+        const unlockedStories = Math.min(6, Math.floor(mathActivities / 2), Math.floor(languageActivities / 2));
+        const nextTarget = Math.min(12, (unlockedStories + 1) * 2);
+        const missingMath = unlockedStories >= 6 ? 0 : Math.max(0, nextTarget - mathActivities);
+        const missingLanguage = unlockedStories >= 6 ? 0 : Math.max(0, nextTarget - languageActivities);
+
+        return {
+            mathActivities,
+            languageActivities,
+            unlockedStories,
+            missingMath,
+            missingLanguage,
+            canCreate: unlockedStories > 0,
+            nextStoryReady: missingMath === 0 && missingLanguage === 0
+        };
+    }
+
+    function getMasteredStrategies(data = getData()) {
+        const unique = new Map();
+        getPassedActivities(data).forEach(activity => {
+            const subject = activity.subject;
+            const strategyId = Number(activity.strategyId);
+            unique.set(`${subject}:${strategyId}`, { subject, strategyId });
+        });
+        return [...unique.values()];
+    }
+
     function resetData() {
         return saveData(createDefaultData());
     }
@@ -158,6 +211,9 @@ window.DragonApp = window.DragonApp || {};
         setModoRecuperacion: setRecuperacion,
         updateProgress,
         updateMysteryProgress,
+        completeActivity,
+        getStoryUnlockStatus,
+        getMasteredStrategies,
         resetData,
         exportCSV
     };
