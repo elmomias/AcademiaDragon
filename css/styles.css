@@ -89,6 +89,66 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .category-btn { min-height: 118px; padding: 1.2rem; border: 2px solid color-mix(in srgb, var(--primary) 24%, white); border-radius: 15px; color: #1e293b; background: var(--soft-bg); text-align: left; transition: transform 160ms ease, box-shadow 160ms ease; }
 .category-btn strong { display: block; margin-bottom: 0.4rem; color: var(--primary-dark); font-size: 1.05rem; }
 .category-btn small { color: #64748b; }
+.remember-category {
+    border: 2px solid #2563eb;
+    background: linear-gradient(145deg, #eff6ff, #dbeafe);
+}
+.category-btn {
+    position: relative;
+}
+.activity-result-badge {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+.activity-result-badge span:first-child {
+    font-size: 0.95rem;
+    font-weight: 900;
+}
+.category-level-achieved {
+    border-color: #16a34a;
+    background: linear-gradient(145deg, #f0fdf4, #dcfce7);
+}
+.category-level-achieved strong,
+.category-level-intermediate strong,
+.category-level-reinforce strong {
+    padding-right: 4.8rem;
+}
+.category-level-achieved .activity-result-badge {
+    color: #166534;
+}
+.category-level-intermediate {
+    border-color: #ea580c;
+    background: linear-gradient(145deg, #fff7ed, #ffedd5);
+}
+.category-level-intermediate .activity-result-badge {
+    color: #c2410c;
+}
+.category-level-reinforce {
+    border-color: #dc2626;
+    background: linear-gradient(145deg, #fef2f2, #fee2e2);
+}
+.category-level-reinforce .activity-result-badge {
+    color: #b91c1c;
+}
+.remember-category::before {
+    content: "RECUERDA · 10 RETOS";
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #1d4ed8;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+}
 
 .practice-card { min-height: 460px; }
 .prompt-box { margin: 1.5rem 0; padding: clamp(1.5rem, 5vw, 2.6rem) 1rem; border: 2px solid color-mix(in srgb, var(--primary) 18%, white); border-radius: 18px; background: var(--soft-bg); font-size: clamp(1.35rem, 4.5vw, 2.15rem); font-weight: 800; line-height: 1.4; text-align: center; }
@@ -123,6 +183,75 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .option-btn:disabled, input:disabled, button:disabled { cursor: not-allowed; opacity: 0.65; }
 .input-container { display: flex; gap: 0.8rem; }
 .input-container input { flex: 1; font-size: 1.2rem; text-align: center; }
+.numeric-keypad {
+    width: min(330px, 100%);
+    margin: 0.55rem auto 0;
+    padding: 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, #cbd5e1);
+    border-radius: 14px;
+    background: #fff;
+}
+.numeric-keypad-toolbar {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0 0.15rem 0.35rem 0.35rem;
+    color: var(--primary-dark);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+.numeric-keypad-toggle {
+    min-height: 30px;
+    padding: 0.25rem 0.55rem;
+    border: 0;
+    border-radius: 8px;
+    color: var(--primary-dark);
+    background: color-mix(in srgb, var(--primary) 10%, white);
+    cursor: pointer;
+    font-weight: 800;
+}
+.numeric-keypad-panel {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+.numeric-key {
+    min-height: 44px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    color: #1e293b;
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+.numeric-key:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: var(--soft-bg);
+}
+.numeric-key.utility {
+    color: #991b1b;
+    background: #fff1f2;
+}
+.numeric-key.confirm {
+    color: #fff;
+    background: var(--primary);
+}
+.numeric-key.confirm:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+.numeric-key.zero {
+    grid-column: span 3;
+}
+.numeric-keypad.minimized .numeric-keypad-panel {
+    display: none;
+}
+.numeric-key:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
 .feedback-box { margin-top: 1.25rem; padding: 1.15rem; border-radius: 15px; }
 .feedback-box.success { color: #14532d; background: #dcfce7; }
 .feedback-box.error { color: #7f1d1d; background: #fee2e2; }
@@ -143,6 +272,89 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .switch-row input { width: 20px; min-height: 20px; }
 .stats-line { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.8rem; }
 .stat-pill { padding: 0.65rem 0.9rem; border-radius: 11px; background: #e2e8f0; font-weight: 700; }
+.teacher-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.teacher-section-heading h2,
+.teacher-help {
+    margin-bottom: 0.35rem;
+}
+.teacher-section-heading p,
+.teacher-help,
+.teacher-empty,
+.teacher-positive {
+    color: #64748b;
+}
+.activity-progress-list {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.8rem;
+}
+.activity-progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    padding: 0.8rem;
+    border: 1px solid #cbd5e1;
+    border-left: 5px solid #64748b;
+    border-radius: 12px;
+    background: #fff;
+}
+.activity-progress-row.level-achieved { border-left-color: #16a34a; }
+.activity-progress-row.level-intermediate { border-left-color: #ea580c; }
+.activity-progress-row.level-reinforce { border-left-color: #dc2626; }
+.activity-progress-copy {
+    display: grid;
+    gap: 0.2rem;
+}
+.activity-progress-copy span,
+.activity-progress-metrics,
+.failure-summary-list span,
+.failure-summary-list small {
+    color: #64748b;
+    font-size: 0.88rem;
+}
+.activity-progress-metrics {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+.activity-percent {
+    color: #0f172a;
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+.activity-reset-btn {
+    min-height: 36px;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid #fecaca;
+    border-radius: 9px;
+    color: #b91c1c;
+    background: #fff1f2;
+    cursor: pointer;
+    font-weight: 800;
+}
+.failure-summary-list {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0.8rem 0 0;
+    padding-left: 1.35rem;
+}
+.failure-summary-list li {
+    padding: 0.25rem 0.35rem;
+}
+.failure-summary-list strong,
+.failure-summary-list span,
+.failure-summary-list small {
+    display: block;
+    margin-bottom: 0.15rem;
+}
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 700px) {
@@ -155,6 +367,8 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
     .input-container, .view-toolbar, .section-heading { align-items: stretch; flex-direction: column; }
     .options-grid { grid-template-columns: 1fr; }
     .teacher-actions { align-items: stretch; flex-direction: column; }
+    .activity-progress-row { align-items: stretch; flex-direction: column; }
+    .activity-progress-metrics { justify-content: flex-start; }
 }
 
 /* Responsive layout for netbooks, tablets and large classroom displays */
@@ -336,6 +550,13 @@ h1 {
     .category-btn {
         min-height: 72px;
         padding: 0.55rem 0.65rem;
+    }
+    .activity-result-badge {
+        top: 0.35rem;
+        right: 0.35rem;
+        min-height: 24px;
+        padding: 0.15rem 0.4rem;
+        font-size: 0.68rem;
     }
 
     .category-btn strong {

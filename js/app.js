@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const categories = {
         math: [
+            [200, 'Recuerda', 'Valor posicional y descomposición: unidades, decenas y centenas'],
             [1, 'Amigos del 10', 'Completar, descomponer y usar parejas del 10'],
             [2, 'Llegar a la decena', 'Puentes y sumas pasando por la decena'],
             [3, 'Dobles y mitades', 'Cálculo directo e incógnitas'],
@@ -66,7 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
         options: document.getElementById('practice-options'),
         answerForm: document.getElementById('answer-form'),
         answerInput: document.getElementById('practice-input'),
-        feedback: document.getElementById('practice-feedback')
+        feedback: document.getElementById('practice-feedback'),
+        numericKeypad: document.getElementById('numeric-keypad'),
+        numericKeypadPanel: document.getElementById('numeric-keypad-panel'),
+        numericKeypadToggle: document.getElementById('numeric-keypad-toggle')
     };
 
     const views = {
@@ -87,7 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         exercise: null,
         answered: false,
         timer: null,
-        mysteryStoryId: 1
+        mysteryStoryId: 1,
+        numericKeypadMinimized: false,
+        sessionLength: SESSION_LENGTH
     };
 
     function setTheme(theme) {
@@ -99,6 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.entries(views).forEach(([key, view]) => {
             view.hidden = key !== name;
         });
+        if (name !== 'practice') {
+            setNumericKeypadVisible(false);
+        }
         setTheme(theme);
     }
 
@@ -147,6 +156,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'category-btn';
+            if (id === 200) {
+                button.className += ' remember-category';
+            }
+
+            const level = getActivityLevel(id);
+            if (level) {
+                button.classList.add(`category-level-${level.level}`);
+                button.setAttribute(
+                    'aria-label',
+                    `${title}. Realizada. ${level.source === 'mejor' ? 'Mejor' : 'Nivel'}: ${level.percentage} por ciento`
+                );
+
+                const resultBadge = document.createElement('span');
+                resultBadge.className = 'activity-result-badge';
+                resultBadge.innerHTML = `<span aria-hidden="true">✓</span><span>${level.source === 'mejor' ? 'Mejor' : 'Nivel'} ${level.percentage}%</span>`;
+                button.appendChild(resultBadge);
+            }
+
             const strong = document.createElement('strong');
             strong.textContent = title;
             const small = document.createElement('small');
@@ -162,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.categoryName = categoryName;
         state.exerciseIndex = 0;
         state.score = 0;
+        state.sessionLength = categoryId === 200 ? 10 : SESSION_LENGTH;
         state.exercise = null;
         state.completionRecorded = false;
         showView('practice', state.subject);
@@ -170,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function nextExercise() {
         clearTimeout(state.timer);
-        if (state.exerciseIndex >= SESSION_LENGTH) {
+        if (state.exerciseIndex >= state.sessionLength) {
             finishSession();
             return;
         }
@@ -193,17 +221,113 @@ document.addEventListener('DOMContentLoaded', () => {
             .trim();
     }
 
+    function getActivityLevel(categoryId) {
+        const data = Storage.getData();
+        const subject = state.subject;
+        const progressMap = subject === 'lengua' ? data.progresoLengua : data.progresoMath;
+        const record = progressMap[String(categoryId)];
+        const completed = (data.actividadesCompletadas || [])
+            .filter(activity =>
+                activity.subject === (subject === 'lengua' ? 'lengua' : 'math')
+                && Number(activity.strategyId) === Number(categoryId)
+            );
+
+        if (!record && !completed.length) {
+            return null;
+        }
+
+        if (!completed.length && record && (Number(record.intentos) || 0) <= 0) {
+            return null;
+        }
+
+        let percentage = 0;
+        let source = 'actividad';
+
+        if (completed.length) {
+            percentage = completed.reduce((best, activity) => {
+                const total = Math.max(1, Number(activity.total) || 1);
+                const score = Math.max(0, Math.min(total, Number(activity.score) || 0));
+                return Math.max(best, Math.round((score / total) * 100));
+            }, 0);
+            source = 'mejor';
+        } else if (record) {
+            const attempts = Math.max(0, Number(record.intentos) || 0);
+            const correct = Math.max(0, Number(record.aciertos) || 0);
+            percentage = attempts > 0
+                ? Math.round((correct / attempts) * 100)
+                : Math.max(0, Math.min(100, Number(record.dominio) || 0));
+            source = 'progreso';
+        }
+
+        const safePercentage = Math.max(0, Math.min(100, Number(percentage) || 0));
+        if (safePercentage >= 75) return { level: 'achieved', percentage: safePercentage, source };
+        if (safePercentage >= 50) return { level: 'intermediate', percentage: safePercentage, source };
+        return { level: 'reinforce', percentage: safePercentage, source };
+    }
+
+    function isNumericOpenAnswer(exercise) {
+        if (state.subject !== 'math' || !exercise) return false;
+        if (Array.isArray(exercise.options) && exercise.options.length > 0) return false;
+        return /^-?\d+$/.test(String(exercise.answer).trim());
+    }
+
+    function setNumericKeypadVisible(visible) {
+        elements.numericKeypad.hidden = !visible;
+        if (!visible) return;
+        elements.numericKeypad.classList.toggle('minimized', state.numericKeypadMinimized);
+        elements.numericKeypadToggle.textContent = state.numericKeypadMinimized ? 'Mostrar' : 'Minimizar';
+        elements.numericKeypadToggle.setAttribute('aria-expanded', String(!state.numericKeypadMinimized));
+    }
+
+    function insertNumericText(text) {
+        if (elements.answerInput.disabled) return;
+        const input = elements.answerInput;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        input.value = `${input.value.slice(0, start)}${text}${input.value.slice(end)}`;
+        const cursor = start + text.length;
+        input.setSelectionRange(cursor, cursor);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.focus();
+    }
+
+    function handleNumericKeypadAction(action) {
+        if (elements.answerInput.disabled) return;
+        if (action === 'clear') {
+            elements.answerInput.value = '';
+            elements.answerInput.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (action === 'backspace') {
+            const input = elements.answerInput;
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? input.value.length;
+            if (start !== end) {
+                input.value = `${input.value.slice(0, start)}${input.value.slice(end)}`;
+                input.setSelectionRange(start, start);
+            } else if (start > 0) {
+                input.value = `${input.value.slice(0, start - 1)}${input.value.slice(end)}`;
+                input.setSelectionRange(start - 1, start - 1);
+            }
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (action === 'confirm') {
+            elements.answerForm.requestSubmit();
+        }
+        elements.answerInput.focus();
+    }
+
     function lockAnswers(locked) {
         elements.answerInput.disabled = locked;
         elements.answerForm.querySelector('button').disabled = locked;
         elements.options.querySelectorAll('button').forEach(button => {
             button.disabled = locked;
         });
+        elements.numericKeypadPanel.querySelectorAll('button').forEach(button => {
+            button.disabled = locked;
+        });
     }
 
     function renderExercise() {
         const exercise = state.exercise;
-        elements.progress.textContent = `Ejercicio ${state.exerciseIndex} de ${SESSION_LENGTH}`;
+        elements.progress.textContent = `Ejercicio ${state.exerciseIndex} de ${state.sessionLength}`;
         elements.practiceCategory.textContent = state.categoryName;
         elements.prompt.textContent = exercise.prompt;
         elements.feedback.hidden = true;
@@ -214,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasOptions = Array.isArray(exercise.options) && exercise.options.length > 0;
         elements.options.hidden = !hasOptions;
         elements.answerForm.hidden = hasOptions;
+        setNumericKeypadVisible(isNumericOpenAnswer(exercise));
         if (exercise.activityType === 'drag') {
             elements.options.className = 'drag-workspace';
 
@@ -328,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function finishSession() {
         if (!state.completionRecorded) {
-            Storage.completeActivity(state.subject, state.categoryId, state.score, SESSION_LENGTH);
+            Storage.completeActivity(state.subject, state.categoryId, state.score, state.sessionLength);
             state.completionRecorded = true;
         }
         const unlock = Storage.getStoryUnlockStatus();
@@ -338,11 +463,12 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.prompt.textContent = '🏆 ¡Sesión completada!';
         elements.options.hidden = true;
         elements.answerForm.hidden = true;
+        setNumericKeypadVisible(false);
         elements.feedback.hidden = false;
         elements.feedback.className = 'feedback-box success';
         elements.feedback.innerHTML = `
             <h2>¡Buen trabajo, ${escapeHtml(Storage.getData().name)}!</h2>
-            <p>Has acertado <strong>${state.score} de ${SESSION_LENGTH}</strong> ejercicios.</p>
+            <p>Has acertado <strong>${state.score} de ${state.sessionLength}</strong> ejercicios.</p>
             <p>${escapeHtml(activityUnlockMessage(unlock, state.score))}</p>
             <button id="btn-finish-session" class="action-btn primary" type="button">Elegir otra categoría</button>
         `;
@@ -367,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function activityUnlockMessage(status, score) {
-        if (score < Math.ceil(SESSION_LENGTH * 0.8)) {
+        if (score < Math.ceil(state.sessionLength * 0.8)) {
             return `${storyProgressMessage(status)} Supera una actividad al 80 % para avanzar hacia tu próxima historia.`;
         }
         return status.nextStoryReady || status.canCreate
@@ -501,6 +627,119 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { attempts: 0, correct: 0 });
     }
 
+    function categoryName(subject, categoryId) {
+        const list = subject === 'math'
+            ? [...categories.math, ...recoveryCategories]
+            : categories.lengua;
+        const category = list.find(([id]) => Number(id) === Number(categoryId));
+        return category ? category[1] : `Categoría ${categoryId}`;
+    }
+
+    function performanceLevel(percentage) {
+        if (percentage >= 75) return 'achieved';
+        if (percentage >= 50) return 'intermediate';
+        return 'reinforce';
+    }
+
+    function teacherActivityData(data, subject) {
+        const progress = subject === 'lengua' ? data.progresoLengua : data.progresoMath;
+        const completed = (data.actividadesCompletadas || []).filter(activity => activity.subject === subject);
+        const ids = new Set([
+            ...Object.keys(progress || {}).filter(id =>
+                Number.isFinite(Number(id))
+                && (Number(progress[id].intentos) || 0) > 0
+            ),
+            ...completed
+                .filter(activity => Number.isFinite(Number(activity.strategyId)))
+                .map(activity => String(Number(activity.strategyId)))
+        ]);
+
+        return [...ids].map(id => {
+            const record = (progress && progress[id]) || {};
+            const sessions = completed.filter(activity => Number(activity.strategyId) === Number(id));
+            let attempts = Math.max(0, Number(record.intentos) || 0);
+            let correct = Math.max(0, Number(record.aciertos) || 0);
+            if (!attempts && sessions.length) {
+                attempts = sessions.reduce((sum, activity) => sum + Math.max(0, Number(activity.total) || 0), 0);
+                correct = sessions.reduce((sum, activity) => sum + Math.max(0, Number(activity.score) || 0), 0);
+            }
+            const failures = Math.max(0, attempts - correct);
+            const accumulated = attempts ? Math.round((correct / attempts) * 100) : 0;
+            const best = sessions.reduce((maximum, activity) => {
+                const total = Math.max(1, Number(activity.total) || 1);
+                const score = Math.max(0, Math.min(total, Number(activity.score) || 0));
+                return Math.max(maximum, Math.round((score / total) * 100));
+            }, -1);
+            return {
+                id,
+                subject,
+                name: categoryName(subject, id),
+                attempts,
+                correct,
+                failures,
+                accumulated,
+                percentage: best >= 0 ? best : accumulated,
+                source: best >= 0 ? 'Mejor resultado' : 'Progreso acumulado'
+            };
+        });
+    }
+
+    function renderTeacherActivityProgress(data) {
+        const rows = [
+            ...teacherActivityData(data, 'math'),
+            ...teacherActivityData(data, 'lengua')
+        ];
+        const progressContainer = document.getElementById('teacher-activity-progress');
+        const summaryContainer = document.getElementById('teacher-failure-summary');
+
+        if (!rows.length) {
+            progressContainer.innerHTML = '<p class="teacher-empty">Todavía no hay actividades realizadas.</p>';
+            summaryContainer.innerHTML = '<p class="teacher-empty">Al registrar respuestas aparecerán sugerencias de refuerzo.</p>';
+            return;
+        }
+
+        progressContainer.innerHTML = `
+            <div class="activity-progress-list">
+                ${rows.map(row => `
+                    <article class="activity-progress-row level-${performanceLevel(row.percentage)}">
+                        <div class="activity-progress-copy">
+                            <strong>${escapeHtml(row.name)}</strong>
+                            <span>${row.subject === 'math' ? 'Matemáticas' : 'Lengua'} · ${escapeHtml(row.source)}</span>
+                        </div>
+                        <div class="activity-progress-metrics">
+                            <span class="activity-percent">${row.percentage}%</span>
+                            <span>${row.correct}/${row.attempts} aciertos</span>
+                            <span>${row.failures} ${row.failures === 1 ? 'error' : 'errores'}</span>
+                            <button class="activity-reset-btn" type="button" data-subject="${row.subject}" data-category-id="${row.id}">
+                                Restablecer
+                            </button>
+                        </div>
+                    </article>
+                `).join('')}
+            </div>
+        `;
+
+        const priorities = rows
+            .filter(row => row.failures > 0)
+            .sort((a, b) => a.accumulated - b.accumulated || b.failures - a.failures)
+            .slice(0, 3);
+        if (!priorities.length) {
+            summaryContainer.innerHTML = '<p class="teacher-positive">De momento no hay fallos registrados. Conviene mantener una práctica variada.</p>';
+            return;
+        }
+        summaryContainer.innerHTML = `
+            <ol class="failure-summary-list">
+                ${priorities.map(row => `
+                    <li>
+                        <strong>${escapeHtml(row.name)}</strong>
+                        <span>${row.failures} ${row.failures === 1 ? 'respuesta para revisar' : 'respuestas para revisar'} · ${row.accumulated}% acumulado.</span>
+                        <small>Volver a practicar esta estrategia ayudará a consolidar el contenido.</small>
+                    </li>
+                `).join('')}
+            </ol>
+        `;
+    }
+
     function renderTeacherPanel() {
         const data = Storage.getData();
         document.getElementById('teacher-student-name').value = data.name;
@@ -520,6 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="stat-pill">Lengua: ${language.attempts}</span>
             </div>
         `;
+        renderTeacherActivityProgress(data);
     }
 
     document.getElementById('name-form').addEventListener('submit', event => {
@@ -547,12 +787,38 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         checkAnswer(elements.answerInput.value);
     });
+    elements.numericKeypadToggle.addEventListener('click', () => {
+        state.numericKeypadMinimized = !state.numericKeypadMinimized;
+        setNumericKeypadVisible(!elements.numericKeypad.hidden);
+    });
+    elements.numericKeypadPanel.addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        if (button.dataset.number !== undefined) {
+            insertNumericText(button.dataset.number);
+        } else if (button.dataset.action) {
+            handleNumericKeypadAction(button.dataset.action);
+        }
+    });
     document.getElementById('btn-mystery-back').addEventListener('click', () => showView('hub'));
     document.getElementById('mystery-story-selector').addEventListener('change', event => {
         state.mysteryStoryId = Number(event.target.value);
         renderMystery();
     });
     document.getElementById('btn-teacher-panel').addEventListener('click', openTeacherPanel);
+    document.getElementById('teacher-activity-progress').addEventListener('click', event => {
+        const button = event.target.closest('[data-category-id]');
+        if (!button) return;
+        const subject = button.dataset.subject;
+        const categoryId = Number(button.dataset.categoryId);
+        const label = categoryName(subject, categoryId);
+        if (!confirm(`¿Restablecer «${label}»?\n\nSe eliminarán únicamente sus intentos y sesiones; el perfil y las demás actividades no cambiarán.`)) {
+            return;
+        }
+        Storage.resetActivity(subject, categoryId);
+        renderTeacherPanel();
+        renderIdentity();
+    });
     document.getElementById('btn-close-teacher').addEventListener('click', () => showView(Storage.getData().name ? 'hub' : 'name'));
     document.getElementById('btn-export-csv').addEventListener('click', () => Storage.exportCSV());
     document.getElementById('btn-save-name').addEventListener('click', () => {

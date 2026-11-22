@@ -66,7 +66,7 @@
                     <div>
                         <div class="eyebrow">Práctica por categoría</div>
                         <h1 id="category-title">Elige una lección</h1>
-                        <p>La sesión tendrá 20 ejercicios exclusivos de esta categoría.</p>
+                        <p>La sesión se adapta a la categoría elegida: 10 ejercicios de refuerzo o 20 de práctica.</p>
                     </div>
                 </div>
                 <div id="category-grid" class="category-grid"></div>
@@ -85,6 +85,27 @@
                     <input id="practice-input" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe tu respuesta">
                     <button class="action-btn primary" type="submit">Comprobar</button>
                 </form>
+                <aside id="numeric-keypad" class="numeric-keypad" aria-label="Teclado numérico" hidden>
+                    <div class="numeric-keypad-toolbar">
+                        <span>Teclado numérico</span>
+                        <button id="numeric-keypad-toggle" class="numeric-keypad-toggle" type="button" aria-expanded="true">Minimizar</button>
+                    </div>
+                    <div id="numeric-keypad-panel" class="numeric-keypad-panel">
+                        <button class="numeric-key" type="button" data-number="7">7</button>
+                        <button class="numeric-key" type="button" data-number="8">8</button>
+                        <button class="numeric-key" type="button" data-number="9">9</button>
+                        <button class="numeric-key utility" type="button" data-action="backspace" aria-label="Borrar último carácter">⌫</button>
+                        <button class="numeric-key" type="button" data-number="4">4</button>
+                        <button class="numeric-key" type="button" data-number="5">5</button>
+                        <button class="numeric-key" type="button" data-number="6">6</button>
+                        <button class="numeric-key utility" type="button" data-action="clear" aria-label="Borrar toda la respuesta">C</button>
+                        <button class="numeric-key" type="button" data-number="1">1</button>
+                        <button class="numeric-key" type="button" data-number="2">2</button>
+                        <button class="numeric-key" type="button" data-number="3">3</button>
+                        <button class="numeric-key confirm" type="button" data-action="confirm" aria-label="Comprobar respuesta">✓</button>
+                        <button class="numeric-key zero" type="button" data-number="0">0</button>
+                    </div>
+                </aside>
                 <div id="practice-feedback" class="feedback-box" aria-live="polite" hidden></div>
             </section>
 
@@ -130,6 +151,20 @@
                     <div class="teacher-box stats-box">
                         <h2>Rendimiento de este portátil</h2>
                         <div id="teacher-stats-text"></div>
+                    </div>
+                    <div class="teacher-box stats-box">
+                        <div class="teacher-section-heading">
+                            <div>
+                                <h2>Progreso por actividad</h2>
+                                <p>Se muestra el mejor resultado completado y los intentos acumulados.</p>
+                            </div>
+                        </div>
+                        <div id="teacher-activity-progress"></div>
+                    </div>
+                    <div class="teacher-box stats-box">
+                        <h2>Saberes para reforzar</h2>
+                        <p class="teacher-help">Los errores orientan la siguiente práctica; no penalizan ni bloquean la actividad.</p>
+                        <div id="teacher-failure-summary"></div>
                     </div>
                 </div>
                 <div class="teacher-actions">

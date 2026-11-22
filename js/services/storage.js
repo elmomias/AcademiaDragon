@@ -124,6 +124,25 @@ window.DragonApp = window.DragonApp || {};
         return saveData(data);
     }
 
+    function resetActivity(subject, strategyId) {
+        const data = getData();
+        const safeSubject = subject === 'lengua' ? 'lengua' : 'math';
+        const id = String(strategyId);
+        const progressProperty = safeSubject === 'lengua' ? 'progresoLengua' : 'progresoMath';
+
+        delete data[progressProperty][id];
+        data.actividadesCompletadas = (data.actividadesCompletadas || []).filter(activity =>
+            activity.subject !== safeSubject
+            || Number(activity.strategyId) !== Number(strategyId)
+        );
+        data.sesiones = (data.sesiones || []).filter(session =>
+            session.subject !== safeSubject
+            || Number(session.strategyId) !== Number(strategyId)
+        );
+
+        return saveData(data);
+    }
+
     function getPassedActivities(data = getData()) {
         return (data.actividadesCompletadas || []).filter(activity => activity.superada);
     }
@@ -212,6 +231,7 @@ window.DragonApp = window.DragonApp || {};
         updateProgress,
         updateMysteryProgress,
         completeActivity,
+        resetActivity,
         getStoryUnlockStatus,
         getMasteredStrategies,
         resetData,

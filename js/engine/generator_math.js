@@ -5,7 +5,8 @@ window.DragonApp = window.DragonApp || {};
     const shuffle = values => [...values].sort(() => Math.random() - 0.5);
     const options = answer => shuffle([answer, answer + 10, Math.max(0, answer - 10)].filter((v, i, a) => a.indexOf(v) === i));
 
-    function generateByStrategy(strategyId) {
+    function generateByStrategy(strategyId, options = {}) {
+        const questionNumber = Number(options.questionNumber);
         switch (Number(strategyId)) {
             case 1: {
                 const variant = rand(1, 6);
@@ -278,6 +279,82 @@ window.DragonApp = window.DragonApp || {};
                 }
                 const answer = Array(times).fill(factor).join(' + ');
                 return { strategyId: 16, prompt: `Transforma esta suma en multiplicación: ${answer}`, answer: `${times} × ${factor}`, options: shuffle([`${times} × ${factor}`, `${factor} × ${times + 1}`, `${times + 1} × ${factor}`]), paso1: `El número ${factor} aparece ${times} veces.`, paso2: `${answer} = ${times} × ${factor}.` };
+            }
+            case 200: {
+                const exercises = [
+                    {
+                        prompt: 'En el número 40, ¿cuántas unidades hay?',
+                        answer: 0,
+                        paso1: 'Unidad = 1. Mira la última cifra: la cifra de las unidades.',
+                        paso2: 'En 40, la última cifra es 0. Por eso hay 0 unidades.'
+                    },
+                    {
+                        prompt: 'En el número 53, ¿qué cifra ocupa el lugar de las decenas?',
+                        answer: 5,
+                        paso1: 'Decena = 10. Las decenas son el segundo lugar contando desde la derecha.',
+                        paso2: 'En 53, el 5 está en el lugar de las decenas: 5 decenas.'
+                    },
+                    {
+                        prompt: 'En el número 307, ¿qué cifra ocupa el lugar de las centenas?',
+                        answer: 3,
+                        paso1: 'Centena = 100. Las centenas son el tercer lugar contando desde la derecha.',
+                        paso2: 'En 307, el 3 está en el lugar de las centenas: 3 centenas.'
+                    },
+                    {
+                        prompt: 'En el número 345, ¿cuántas unidades hay?',
+                        answer: 5,
+                        paso1: 'Unidad = 1. La cifra de la derecha indica las unidades.',
+                        paso2: '345 termina en 5, así que tiene 5 unidades.'
+                    },
+                    {
+                        prompt: 'Completa la descomposición: 345 = ? + 40 + 5',
+                        answer: 300,
+                        paso1: 'Centena = 100. La cifra 3 de las centenas vale 300.',
+                        paso2: '345 se separa así: 300 + 40 + 5.'
+                    },
+                    {
+                        prompt: 'Completa la descomposición: 345 = 300 + ? + 5',
+                        answer: 40,
+                        paso1: 'Decena = 10. El 4 de las decenas vale 40.',
+                        paso2: '345 se separa así: 300 + 40 + 5.'
+                    },
+                    {
+                        prompt: 'Completa la descomposición: 345 = 300 + 40 + ?',
+                        answer: 5,
+                        paso1: 'Unidad = 1. El 5 de las unidades vale 5.',
+                        paso2: '345 se separa así: 300 + 40 + 5.'
+                    },
+                    {
+                        prompt: 'Recompón el número: 2 C + 4 D + 3 U',
+                        answer: 243,
+                        paso1: 'Recuerda: 1 C = 100, 1 D = 10 y 1 U = 1.',
+                        paso2: '2 C = 200, 4 D = 40 y 3 U = 3. El número es 243.'
+                    },
+                    {
+                        prompt: 'Recompón el número: 5 C + 0 D + 7 U',
+                        answer: 507,
+                        paso1: 'El 0 de las decenas significa que no sumamos ninguna decena.',
+                        paso2: '5 C = 500 y 7 U = 7. Juntamos 500 + 0 + 7 = 507.'
+                    },
+                    {
+                        prompt: 'Recompón el número: 4 C + 6 D + 2 U',
+                        answer: 462,
+                        paso1: 'Convierte cada orden: centenas en 100, decenas en 10 y unidades en 1.',
+                        paso2: '4 C = 400, 6 D = 60 y 2 U = 2. 400 + 60 + 2 = 462.'
+                    }
+                ];
+                const index = (Number.isFinite(questionNumber)
+                    ? Math.max(1, Math.min(10, questionNumber))
+                    : 1) - 1;
+                const exercise = exercises[index];
+                return {
+                    strategyId: 200,
+                    prompt: exercise.prompt,
+                    answer: exercise.answer,
+                    options: null,
+                    paso1: exercise.paso1,
+                    paso2: exercise.paso2
+                };
             }
             default:
                 return generateByStrategy(1);
