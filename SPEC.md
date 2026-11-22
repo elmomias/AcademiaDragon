@@ -90,6 +90,10 @@ Categorias:
 - 10 Sumas con llevadas.
 - 11 Restas con llevadas.
 - 12 Multiplicacion por 10, 100 y 1000.
+- 13 Numeros de cuatro cifras: descomposicion, redondeo, comparacion y series.
+- 14 Sumas y restas con numeros de hasta cuatro cifras.
+- 15 Rectas y angulos: rectas paralelas, perpendiculares y clasificacion de angulos.
+- 16 Multiplicacion: suma repetida, tablas y factores.
 - 101 Descomposicion U-D-C hasta 999, solo en recuperacion.
 - 102 Series de 2, 5 y 10, solo en recuperacion.
 
@@ -97,7 +101,11 @@ Categorias:
 
 Namespace: `window.DragonApp.GeneratorLengua`.
 
-Ortografia y gramatica requieren escritura libre. No se usan opciones multiples para estas categorias.
+Lengua ofrece tres formatos variado dentro de cada categoria:
+
+- Escritura dirigida para las fichas que practican ortografia o produccion concreta.
+- Seleccion rapida de la palabra o opcion correcta.
+- Arrastre tactil o con raton de palabras y signos al recuadro de respuesta.
 
 - 1 Ortografia C/QU.
 - 2 Ortografia G/GU/GUE/GÜ.
@@ -105,6 +113,12 @@ Ortografia y gramatica requieren escritura libre. No se usan opciones multiples 
 - 4 Sinonimos y antonimos.
 - 5 Clasificacion por silabas y acentuacion.
 - 6 Sustantivos y pronombres.
+- 7 Adjetivos y concordancia.
+- 8 Verbos y tiempos verbales.
+- 9 Tipos de oracion segun la modalidad.
+- 10 Puntuacion basica.
+- 11 Familias lexicas y palabras primitivas.
+- 12 Coherencia, cohesion y conectores.
 
 ## 8. Misterio
 

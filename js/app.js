@@ -19,7 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
             [9, 'Aproximar a la decena', 'Seleccionar la decena más cercana'],
             [10, 'Sumas con llevadas', 'Desglosar unidades y decenas'],
             [11, 'Restas con llevadas', 'Pedir una decena y restar'],
-            [12, 'Multiplicar por 10, 100 y 1000', 'Añadir ceros con seguridad']
+            [12, 'Multiplicar por 10, 100 y 1000', 'Añadir ceros con seguridad'],
+            [13, 'Números de cuatro cifras', 'Leer, descomponer y ordenar hasta 9999'],
+            [14, 'Sumas y restas', 'Operaciones de hasta cuatro cifras'],
+            [15, 'Rectas y ángulos', 'Rectas, paralelas, perpendiculares y ángulos'],
+            [16, 'La multiplicación', 'Tablas, suma repetida y factores']
         ],
         lengua: [
             [1, 'Ortografía C / QU', 'Escribe palabras completas correctamente'],
@@ -27,7 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
             [3, 'Mayúsculas', 'Reescribe oraciones y nombres propios'],
             [4, 'Sinónimos y antónimos', 'Relaciona el significado de las palabras'],
             [5, 'Sílabas y acentuación', 'Clasifica palabras y tildes'],
-            [6, 'Sustantivos y pronombres', 'Género, número y sustitución nominal']
+            [6, 'Sustantivos y pronombres', 'Género, número y sustitución nominal'],
+            [7, 'Adjetivos', 'Concuerdan con el sustantivo'],
+            [8, 'Verbos', 'Acciones y tiempos verbales'],
+            [9, 'Tipos de oración', 'Enunciativa, interrogativa y exclamativa'],
+            [10, 'Puntuación', 'Punto, coma y signos de interrogación y exclamación'],
+            [11, 'Familias de palabras', 'Palabras derivadas de una primitiva'],
+            [12, 'Coherencia y cohesión', 'Ordena ideas y evita repeticiones']
         ]
     };
 
@@ -195,7 +205,49 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasOptions = Array.isArray(exercise.options) && exercise.options.length > 0;
         elements.options.hidden = !hasOptions;
         elements.answerForm.hidden = hasOptions;
-        if (hasOptions) {
+        if (exercise.activityType === 'drag') {
+            elements.options.className = 'drag-workspace';
+
+            const dropZone = document.createElement('button');
+            dropZone.type = 'button';
+            dropZone.className = 'drag-drop-zone';
+            dropZone.textContent = 'Arrastra aquí la respuesta';
+            dropZone.addEventListener('dragover', event => {
+                event.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+            dropZone.addEventListener('drop', event => {
+                event.preventDefault();
+                dropZone.classList.remove('drag-over');
+                const value = event.dataTransfer.getData('text/plain');
+                if (value) {
+                    dropZone.textContent = value;
+                    checkAnswer(value);
+                }
+            });
+            elements.options.appendChild(dropZone);
+
+            const wordBank = document.createElement('div');
+            wordBank.className = 'drag-word-bank';
+            exercise.options.forEach(value => {
+                const word = document.createElement('button');
+                word.type = 'button';
+                word.className = 'drag-word';
+                word.textContent = String(value);
+                word.draggable = true;
+                word.addEventListener('dragstart', event => {
+                    event.dataTransfer.setData('text/plain', String(value));
+                });
+                word.addEventListener('click', () => {
+                    dropZone.textContent = String(value);
+                    checkAnswer(value);
+                });
+                wordBank.appendChild(word);
+            });
+            elements.options.appendChild(wordBank);
+        } else if (hasOptions) {
+            elements.options.className = 'options-grid';
             exercise.options.forEach(value => {
                 const button = document.createElement('button');
                 button.type = 'button';
@@ -205,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.options.appendChild(button);
             });
         } else {
+            elements.options.className = 'options-grid';
             elements.answerInput.focus();
         }
         lockAnswers(false);
