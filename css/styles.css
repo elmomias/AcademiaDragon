@@ -95,6 +95,31 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 .options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
 .option-btn { min-height: 64px; padding: 1rem; border: 2px solid #cbd5e1; border-radius: 13px; color: #1e293b; background: #f8fafc; font-size: 1.05rem; }
 .option-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--soft-bg); }
+.drag-workspace { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.drag-drop-zone {
+    min-height: 78px;
+    border: 3px dashed var(--primary);
+    border-radius: 16px;
+    color: var(--primary-dark);
+    background: var(--soft-bg);
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+.drag-drop-zone.drag-over { background: color-mix(in srgb, var(--primary) 16%, white); transform: scale(1.01); }
+.drag-word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
+.drag-word {
+    min-height: 52px;
+    min-width: 92px;
+    padding: 0.75rem 1rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    color: #1e293b;
+    background: #fff;
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.08);
+    font-weight: 800;
+    cursor: grab;
+}
+.drag-word:active { cursor: grabbing; }
 .option-btn:disabled, input:disabled, button:disabled { cursor: not-allowed; opacity: 0.65; }
 .input-container { display: flex; gap: 0.8rem; }
 .input-container input { flex: 1; font-size: 1.2rem; text-align: center; }

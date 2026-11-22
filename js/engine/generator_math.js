@@ -204,6 +204,81 @@ window.DragonApp = window.DragonApp || {};
                 const start = rand(1, 5) * step;
                 return { strategyId: 102, prompt: `Completa: ${start}, ${start + step}, ${start + step * 2}, ?`, answer: start + step * 3, options: null, paso1: `La serie aumenta de ${step} en ${step}.`, paso2: `${start + step * 2} + ${step} = ${start + step * 3}.` };
             }
+            case 13: {
+                const thousands = rand(1, 9);
+                const hundreds = rand(0, 9);
+                const tens = rand(0, 9);
+                const units = rand(0, 9);
+                const number = thousands * 1000 + hundreds * 100 + tens * 10 + units;
+                const variant = rand(1, 4);
+                if (variant === 1) {
+                    const answer = Math.round(number / 100) * 100;
+                    return { strategyId: 13, prompt: `Redondea ${number} a la centena más cercana.`, answer, options: shuffle([answer, answer - 100, answer + 100].filter(value => value >= 0)), paso1: `Observamos las decenas y unidades de ${number}.`, paso2: `${number} se aproxima a ${answer}.` };
+                }
+                if (variant === 2) {
+                    const answer = number;
+                    return { strategyId: 13, prompt: `Descompón ${number} en UM, C, D y U.`, answer: `${thousands}UM + ${hundreds}C + ${tens}D + ${units}U`, options: null, paso1: `La cifra ${thousands} ocupa las unidades de millar.`, paso2: `${number} = ${thousands * 1000} + ${hundreds * 100} + ${tens * 10} + ${units}.` };
+                }
+                if (variant === 3) {
+                    const lower = number - rand(1, Math.min(500, number));
+                    const answer = lower < number ? '>' : '<';
+                    return { strategyId: 13, prompt: `Compara: ${lower} ? ${number}. ¿Qué signo completa la relación: <, = o >?`, answer, options: ['<', '=', '>'], paso1: `Comparamos primero las unidades de millar.`, paso2: `${lower} es menor que ${number}, por eso usamos el signo ${answer}.` };
+                }
+                const step = rand(10, 90);
+                const answer = number + step;
+                return { strategyId: 13, prompt: `Completa la serie: ${number}, ${number + step}, ${number + step * 2}, ?`, answer: number + step * 3, options: null, paso1: `La serie avanza de ${step} en ${step}.`, paso2: `${number + step * 2} + ${step} = ${number + step * 3}.` };
+            }
+            case 14: {
+                const variant = rand(1, 3);
+                if (variant === 1) {
+                    const a = rand(1200, 4800);
+                    const b = rand(1100, 4500);
+                    const answer = a + b;
+                    return { strategyId: 14, prompt: `${a} + ${b}`, answer, options: options(answer), paso1: `Sumamos primero unidades y decenas, después centenas y millares.`, paso2: `La suma completa es ${answer}.` };
+                }
+                if (variant === 2) {
+                    const a = rand(3000, 8900);
+                    const b = rand(1000, a - 500);
+                    const answer = a - b;
+                    return { strategyId: 14, prompt: `${a} - ${b}`, answer, options: options(answer), paso1: `Restamos las unidades, decenas, centenas y unidades de millar.`, paso2: `La diferencia es ${answer}.` };
+                }
+                const total = rand(2500, 8000);
+                const known = rand(500, total - 500);
+                const answer = total - known;
+                return { strategyId: 14, prompt: `${known} + ? = ${total}`, answer, options: null, paso1: `Restamos la parte conocida al resultado.`, paso2: `${total} - ${known} = ${answer}.` };
+            }
+            case 15: {
+                const variant = rand(1, 4);
+                if (variant === 1) {
+                    const angle = rand(1, 179);
+                    const answer = angle === 90 ? 'recto' : angle < 90 ? 'agudo' : 'obtuso';
+                    return { strategyId: 15, prompt: `Un ángulo mide ${angle}°. ¿Es agudo, recto u obtuso?`, answer, options: ['agudo', 'recto', 'obtuso'], paso1: `Un recto mide 90°, uno agudo menos de 90° y uno obtuso más de 90°.`, paso2: `${angle}° corresponde a un ángulo ${answer}.` };
+                }
+                if (variant === 2) {
+                    return { strategyId: 15, prompt: '¿Cómo son entre sí dos rectas que nunca se cruzan?', answer: 'paralelas', options: ['paralelas', 'perpendiculares', 'secantes'], paso1: 'Las rectas paralelas mantienen siempre la misma distancia.', paso2: 'Nunca se cruzan: son rectas paralelas.' };
+                }
+                if (variant === 3) {
+                    return { strategyId: 15, prompt: '¿Cómo se llaman dos rectas que se cruzan formando cuatro ángulos rectos?', answer: 'perpendiculares', options: ['paralelas', 'perpendiculares', 'curvas'], paso1: 'Los ángulos rectos miden 90°.', paso2: 'Dos rectas que forman ángulos rectos son perpendiculares.' };
+                }
+                const answer = '4';
+                return { strategyId: 15, prompt: `¿Cuántos ángulos rectos forman dos rectas perpendiculares? Escribe solo el número.`, answer, options: null, paso1: 'Las perpendiculares se cruzan formando cuatro regiones iguales.', paso2: 'Forman 4 ángulos rectos.' };
+            }
+            case 16: {
+                const factor = rand(2, 9);
+                const times = rand(2, 9);
+                const variant = rand(1, 3);
+                if (variant === 1) {
+                    const answer = factor * times;
+                    return { strategyId: 16, prompt: `${factor} × ${times}`, answer, options: options(answer), paso1: `Es una suma de ${times} grupos de ${factor}.`, paso2: `${factor} × ${times} = ${answer}.` };
+                }
+                if (variant === 2) {
+                    const answer = factor;
+                    const product = factor * times;
+                    return { strategyId: 16, prompt: `Escribe el factor que falta: ${answer} × ${times} = ${product}.`, answer, options: null, paso1: `Busca el número que multiplicado por ${times} da ${product}.`, paso2: `${answer} × ${times} = ${product}.` };
+                }
+                const answer = Array(times).fill(factor).join(' + ');
+                return { strategyId: 16, prompt: `Transforma esta suma en multiplicación: ${answer}`, answer: `${times} × ${factor}`, options: shuffle([`${times} × ${factor}`, `${factor} × ${times + 1}`, `${times + 1} × ${factor}`]), paso1: `El número ${factor} aparece ${times} veces.`, paso2: `${answer} = ${times} × ${factor}.` };
+            }
             default:
                 return generateByStrategy(1);
         }

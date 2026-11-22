@@ -16,8 +16,8 @@ Los datos se guardan localmente en `localStorage`, en la clave `dragon_data_loca
 
 ## Contenidos
 
-- Matematicas: categorias 1-12 y refuerzo 101-102.
-- Lengua: ortografia, mayusculas, sinonimos y antonimos, silabas y pronombres.
+- Matematicas: categorias 1-16, incluyendo las unidades del primer trimestre de 3º, y refuerzo 101-102.
+- Lengua: ortografia, mayusculas, sinonimos y antonimos, silabas, sustantivos, pronombres, adjetivos, verbos, tipos de oracion, puntuacion, familias lexicas y cohesion.
 - Misterio: historias guiadas por parrafos.
 
 Las sesiones contienen 20 ejercicios exclusivos de la categoria elegida.
