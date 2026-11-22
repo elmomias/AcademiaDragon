@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Academia del Dragón</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body>
     <div id="app" class="theme-neutral">
@@ -73,39 +73,48 @@
             </section>
 
             <section id="view-practice" class="view-card practice-card" hidden>
-                <div class="view-toolbar">
+                <div class="view-toolbar practice-toolbar">
                     <button id="btn-practice-back" class="text-btn" type="button">← Categorías</button>
-                    <span id="practice-progress" class="status-badge">Ejercicio 1 de 20</span>
+                    <span id="practice-progress" class="status-badge practice-progress" aria-live="polite">Ejercicio 1 de 20</span>
                 </div>
                 <div id="practice-category" class="eyebrow"></div>
-                <div id="practice-prompt" class="prompt-box" aria-live="polite"></div>
-                <div id="practice-options" class="options-grid" hidden></div>
-                <form id="answer-form" class="input-container">
-                    <label class="sr-only" for="practice-input">Tu respuesta</label>
-                    <input id="practice-input" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe tu respuesta">
-                    <button class="action-btn primary" type="submit">Comprobar</button>
-                </form>
-                <aside id="numeric-keypad" class="numeric-keypad" aria-label="Teclado numérico" hidden>
-                    <div class="numeric-keypad-toolbar">
-                        <span>Teclado numérico</span>
-                        <button id="numeric-keypad-toggle" class="numeric-keypad-toggle" type="button" aria-expanded="true">Minimizar</button>
+                <div id="practice-answer-layout" class="practice-answer-layout">
+                    <div class="practice-main-column">
+                        <div id="practice-prompt" class="prompt-box" aria-live="polite"></div>
+                        <div id="practice-options" class="options-grid" hidden></div>
+                        <form id="answer-form" class="input-container">
+                            <label class="sr-only" for="practice-input">Tu respuesta</label>
+                            <input id="practice-input" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe tu respuesta">
+                            <button class="action-btn primary" type="submit">Comprobar</button>
+                        </form>
                     </div>
-                    <div id="numeric-keypad-panel" class="numeric-keypad-panel">
-                        <button class="numeric-key" type="button" data-number="7">7</button>
-                        <button class="numeric-key" type="button" data-number="8">8</button>
-                        <button class="numeric-key" type="button" data-number="9">9</button>
-                        <button class="numeric-key utility" type="button" data-action="backspace" aria-label="Borrar último carácter">⌫</button>
-                        <button class="numeric-key" type="button" data-number="4">4</button>
-                        <button class="numeric-key" type="button" data-number="5">5</button>
-                        <button class="numeric-key" type="button" data-number="6">6</button>
-                        <button class="numeric-key utility" type="button" data-action="clear" aria-label="Borrar toda la respuesta">C</button>
-                        <button class="numeric-key" type="button" data-number="1">1</button>
-                        <button class="numeric-key" type="button" data-number="2">2</button>
-                        <button class="numeric-key" type="button" data-number="3">3</button>
-                        <button class="numeric-key confirm" type="button" data-action="confirm" aria-label="Comprobar respuesta">✓</button>
-                        <button class="numeric-key zero" type="button" data-number="0">0</button>
-                    </div>
-                </aside>
+                    <aside id="numeric-keypad" class="numeric-keypad" aria-label="Teclado numérico" hidden>
+                        <div class="numeric-keypad-toolbar">
+                            <span>Teclado numérico</span>
+                            <button id="numeric-keypad-toggle" class="numeric-keypad-toggle" type="button" aria-expanded="true">Minimizar</button>
+                        </div>
+                        <div id="numeric-keypad-panel" class="numeric-keypad-panel">
+                            <button class="numeric-key" type="button" data-number="7">7</button>
+                            <button class="numeric-key" type="button" data-number="8">8</button>
+                            <button class="numeric-key" type="button" data-number="9">9</button>
+                            <button class="numeric-key utility" type="button" data-action="backspace" aria-label="Borrar último carácter">⌫</button>
+                            <button class="numeric-key utility" type="button" data-action="clear" aria-label="Borrar toda la respuesta">C</button>
+                            <button class="numeric-key" type="button" data-number="4">4</button>
+                            <button class="numeric-key" type="button" data-number="5">5</button>
+                            <button class="numeric-key" type="button" data-number="6">6</button>
+                            <button class="numeric-key" type="button" data-number="×">×</button>
+                            <button class="numeric-key" type="button" data-number="−">−</button>
+                            <button class="numeric-key" type="button" data-number="1">1</button>
+                            <button class="numeric-key" type="button" data-number="2">2</button>
+                            <button class="numeric-key" type="button" data-number="3">3</button>
+                            <button class="numeric-key" type="button" data-number="+">+</button>
+                            <button class="numeric-key" type="button" data-action="toggle-sign" aria-label="Cambiar signo">+/−</button>
+                            <button class="numeric-key zero" type="button" data-number="0">0</button>
+                            <button class="numeric-key" type="button" data-number=",">,</button>
+                            <button class="numeric-key confirm" type="button" data-action="confirm" aria-label="Comprobar respuesta">✓</button>
+                        </div>
+                    </aside>
+                </div>
                 <div id="practice-feedback" class="feedback-box" aria-live="polite" hidden></div>
             </section>
 
@@ -176,9 +185,9 @@
     </div>
 
     <script src="js/services/storage.js"></script>
-    <script src="js/engine/generator_math.js"></script>
-    <script src="js/engine/generator_lengua.js"></script>
+    <script src="js/engine/generator_math.js?v=5"></script>
+    <script src="js/engine/generator_lengua.js?v=5"></script>
     <script src="js/engine/generator.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>

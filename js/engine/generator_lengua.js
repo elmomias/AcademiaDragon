@@ -1,7 +1,9 @@
 window.DragonApp = window.DragonApp || {};
 
 (function () {
-    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    function rand(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
     const questionCounters = {};
     const pick = (values, options = {}) => {
         const rawQuestion = options.questionNumber ?? options.index;
@@ -224,6 +226,111 @@ window.DragonApp = window.DragonApp || {};
         );
     }
 
+    function recoveryItem(items, questionNumber) {
+        return items[(questionNumber - 1) % items.length];
+    }
+
+    function generateRecovery2ByStrategy(strategyId, questionNumber) {
+        switch (Number(strategyId)) {
+            case 401: {
+                const item = recoveryItem([
+                    {
+                        prompt: 'CT1 · Lee: «Lume escondió una llave bajo una hoja. Primero miró la puerta; después levantó la hoja». ¿Dónde estaba la llave?',
+                        answer: 'bajo una hoja',
+                        paso1: 'Busca en el texto el lugar del objeto importante.',
+                        paso2: 'La llave estaba bajo una hoja.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «El jardín del castillo era pequeño, circular y estaba lleno de flores rojas». ¿De qué color eran las flores?',
+                        answer: 'rojas',
+                        paso1: 'El texto describe las flores con un color.',
+                        paso2: 'Las flores eran rojas.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «—¿Traes el mapa? —Sí, lo guardé en la mochila», respondió Marta. ¿Dónde estaba el mapa?',
+                        answer: 'en la mochila',
+                        paso1: 'Lee la respuesta de Marta al personaje que pregunta.',
+                        paso2: 'Marta guardó el mapa en la mochila.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «Las luciérnagas producen luz al anochecer. Esta luz les sirve para comunicarse». ¿Para qué usan su luz?',
+                        answer: 'para comunicarse',
+                        paso1: 'La segunda frase explica la función de la luz.',
+                        paso2: 'Las luciérnagas usan la luz para comunicarse.'
+                    }
+                ], questionNumber);
+                return { strategyId: 401, prompt: item.prompt, answer: item.answer, paso1: item.paso1, paso2: item.paso2 };
+            }
+            case 402: {
+                const item = recoveryItem([
+                    {
+                        prompt: 'CT2 · Elige una palabra sinónima de «alegre». Escribe: contento / cansado / serio.',
+                        answer: 'contento',
+                        paso1: 'Un sinónimo tiene un significado parecido.',
+                        paso2: 'Alegre y contento significan algo parecido.'
+                    },
+                    {
+                        prompt: 'CT2 · Escribe el antónimo de «abrir»: cerrar / mirar / entrar.',
+                        answer: 'cerrar',
+                        paso1: 'Un antónimo expresa una idea contraria.',
+                        paso2: 'Abrir y cerrar son acciones contrarias.'
+                    },
+                    {
+                        prompt: 'CT2 · Completa para que concuerde: «Las _____ son fuertes».',
+                        answer: 'dragonas',
+                        paso1: 'Las indica femenino y plural.',
+                        paso2: 'La forma concordada es «Las dragonas son fuertes».'
+                    },
+                    {
+                        prompt: 'CT2 · ¿La frase «¿Dónde está la llave?» es interrogativa, exclamativa o enunciativa?',
+                        answer: 'interrogativa',
+                        paso1: 'Observa si pregunta, expresa emoción o informa.',
+                        paso2: 'Formula una pregunta, por eso es interrogativa.'
+                    }
+                ], questionNumber);
+                return { strategyId: 402, prompt: item.prompt, answer: item.answer, paso1: item.paso1, paso2: item.paso2 };
+            }
+            case 403: {
+                const item = recoveryItem([
+                    {
+                        prompt: 'CT2 · Completa la secuencia con un conector temporal: «_____ abrió el pergamino; después leyó la pista».',
+                        answer: 'Primero',
+                        paso1: 'El conector debe indicar la acción inicial.',
+                        paso2: 'La secuencia comienza con «Primero».'
+                    },
+                    {
+                        prompt: 'CT2 · Completa: «Preparó la mochila. _____ salió hacia el castillo». Usa luego o porque.',
+                        answer: 'Luego',
+                        paso1: 'Busca un conector que ordene las acciones en el tiempo.',
+                        paso2: '«Luego» indica que salió después de preparar la mochila.'
+                    },
+                    {
+                        prompt: 'CT2 · ¿Qué signos necesita «_____Qué sorpresa_____»? Responde: signos de interrogación o signos de exclamación.',
+                        answer: 'signos de exclamación',
+                        paso1: 'La oración expresa sorpresa o emoción.',
+                        paso2: 'La exclamación lleva ¡ al principio y ! al final.'
+                    },
+                    {
+                        prompt: 'CT2 · Revisa y escribe correctamente: «marta guardó el mapa».',
+                        answer: 'Marta guardó el mapa.',
+                        paso1: 'Comprueba mayúscula inicial y punto final.',
+                        paso2: '«Marta» empieza con mayúscula y la oración termina con punto.'
+                    }
+                ], questionNumber);
+                return { strategyId: 403, prompt: item.prompt, answer: item.answer, paso1: item.paso1, paso2: item.paso2 };
+            }
+            default: {
+                return {
+                    strategyId: 401,
+                    prompt: 'CT1 · Lee: «La llave estaba bajo el cojín». ¿Dónde estaba la llave?',
+                    answer: 'bajo el cojín',
+                    paso1: 'Busca la información exacta sobre el lugar.',
+                    paso2: 'La llave estaba bajo el cojín.'
+                };
+            }
+        }
+    }
+
     function generateByStrategy(strategyId, options = {}) {
         const id = Number(strategyId);
         const requestedQuestion = Number(options.questionNumber ?? options.index);
@@ -232,6 +339,9 @@ window.DragonApp = window.DragonApp || {};
             : ((questionCounters[id] || 0) % 20) + 1;
         questionCounters[id] = questionNumber;
         const settings = { ...options, questionNumber };
+        if (id >= 401 && id <= 403) {
+            return generateRecovery2ByStrategy(id, questionNumber);
+        }
         if ([1, 2, 13, 14].includes(id)) return spellingQuestion(id, settings);
         if (id === 3) {
             const [text, answer, rule] = pick(capitals, settings);
@@ -308,7 +418,7 @@ window.DragonApp = window.DragonApp || {};
             if (format === 1) return selectionQuestion(12, prompt, answer, ['porque', 'pero', 'Él', '2, 1, 3'], 'El elemento debe unir las ideas con sentido.', explanation);
             return dragQuestion(12, `Arrastra el elemento que completa: ${prompt}`, answer, ['porque', 'pero', 'Él', '2, 1, 3'], 'El conector, pronombre o orden debe mantener el sentido.', explanation);
         }
-        return generateByStrategy(1, settings);
+        return generateRecovery2ByStrategy(0, questionNumber);
     }
 
     const stories = [

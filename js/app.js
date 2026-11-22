@@ -45,10 +45,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     };
 
-    const recoveryCategories = [
-        [101, 'Centenas, decenas y unidades', 'Descomponer números hasta 999'],
-        [102, 'Series numéricas', 'Contar de 2 en 2, 5 en 5 y 10 en 10']
-    ];
+    const recoveryCategories = {
+        math: [
+            [301, 'La carrera del dragón', 'Conteo hasta 999 y ordinales hasta 20.º'],
+            [302, 'La forja C, D y U', 'Composición, descomposición y redondeo hasta 999'],
+            [303, 'Pociones mágicas y canjes', 'Sumas de hasta tres sumandos y restas con llevadas'],
+            [304, 'El mapa de las cadencias', 'Series, suma-resta y grupos iguales']
+        ],
+        lengua: [
+            [401, 'Pergamino de pistas', 'Comprensión de textos narrativos, descriptivos, dialogados y expositivos'],
+            [402, 'El taller de las palabras', 'Vocabulario, concordancia y modalidad oracional'],
+            [403, 'Crónica en cuatro pasos', 'Conectores temporales, puntuación y escritura revisada']
+        ]
+    };
 
     const elements = {
         app: document.getElementById('app'),
@@ -70,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
         feedback: document.getElementById('practice-feedback'),
         numericKeypad: document.getElementById('numeric-keypad'),
         numericKeypadPanel: document.getElementById('numeric-keypad-panel'),
-        numericKeypadToggle: document.getElementById('numeric-keypad-toggle')
+        numericKeypadToggle: document.getElementById('numeric-keypad-toggle'),
+        practiceAnswerLayout: document.getElementById('practice-answer-layout')
     };
 
     const views = {
@@ -144,8 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCategories() {
         const subject = state.subject;
         const data = Storage.getData();
-        const list = subject === 'math' && data.modoRecuperacion
-            ? [...categories.math, ...recoveryCategories]
+        const list = data.modoRecuperacion
+            ? recoveryCategories[subject]
             : categories[subject];
         const subjectName = subject === 'math' ? 'Dragón Matemático' : 'Dragón de Lengua';
         elements.categoryTitle.textContent = subjectName;
@@ -205,8 +215,14 @@ document.addEventListener('DOMContentLoaded', () => {
         state.exerciseIndex += 1;
         state.answered = false;
         state.exercise = state.subject === 'math'
-            ? MathGenerator.generateByStrategy(state.categoryId, { questionNumber: state.exerciseIndex })
-            : LanguageGenerator.generateByStrategy(state.categoryId, { questionNumber: state.exerciseIndex });
+            ? MathGenerator.generateByStrategy(state.categoryId, {
+                questionNumber: state.exerciseIndex,
+                recovery2: Storage.getData().modoRecuperacion
+            })
+            : LanguageGenerator.generateByStrategy(state.categoryId, {
+                questionNumber: state.exerciseIndex,
+                recovery2: Storage.getData().modoRecuperacion
+            });
         renderExercise();
     }
 
@@ -216,7 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .toLocaleLowerCase('es')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[¿?¡!.,;:]+/g, '')
+            .replace(/,/g, '.')
+            .replace(/[¿?¡!;:]+/g, '')
             .replace(/\s+/g, ' ')
             .trim();
     }
@@ -268,11 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function isNumericOpenAnswer(exercise) {
         if (state.subject !== 'math' || !exercise) return false;
         if (Array.isArray(exercise.options) && exercise.options.length > 0) return false;
-        return /^-?\d+$/.test(String(exercise.answer).trim());
+        return /^[-+]?(?:\d+(?:[,.]\d*)?|[,.]\d+)$/.test(String(exercise.answer).trim());
     }
 
     function setNumericKeypadVisible(visible) {
         elements.numericKeypad.hidden = !visible;
+        elements.practiceAnswerLayout.classList.toggle('numeric-keypad-active', visible);
         if (!visible) return;
         elements.numericKeypad.classList.toggle('minimized', state.numericKeypadMinimized);
         elements.numericKeypadToggle.textContent = state.numericKeypadMinimized ? 'Mostrar' : 'Minimizar';
@@ -307,6 +325,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 input.value = `${input.value.slice(0, start - 1)}${input.value.slice(end)}`;
                 input.setSelectionRange(start - 1, start - 1);
             }
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (action === 'toggle-sign') {
+            const input = elements.answerInput;
+            input.value = input.value.startsWith('-')
+                ? input.value.slice(1)
+                : `-${input.value}`;
+            input.setSelectionRange(input.value.length, input.value.length);
             input.dispatchEvent(new Event('input', { bubbles: true }));
         } else if (action === 'confirm') {
             elements.answerForm.requestSubmit();
@@ -629,8 +654,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function categoryName(subject, categoryId) {
         const list = subject === 'math'
-            ? [...categories.math, ...recoveryCategories]
-            : categories.lengua;
+            ? [...categories.math, ...recoveryCategories.math]
+            : [...categories.lengua, ...recoveryCategories.lengua];
         const category = list.find(([id]) => Number(id) === Number(categoryId));
         return category ? category[1] : `Categoría ${categoryId}`;
     }

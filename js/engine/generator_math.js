@@ -1,7 +1,9 @@
 window.DragonApp = window.DragonApp || {};
 
 (function () {
-    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    function rand(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
     const shuffle = values => [...values].sort(() => Math.random() - 0.5);
     const options = answer => shuffle([answer, answer + 10, Math.max(0, answer - 10)].filter((v, i, a) => a.indexOf(v) === i));
 
@@ -280,6 +282,130 @@ window.DragonApp = window.DragonApp || {};
                 const answer = Array(times).fill(factor).join(' + ');
                 return { strategyId: 16, prompt: `Transforma esta suma en multiplicación: ${answer}`, answer: `${times} × ${factor}`, options: shuffle([`${times} × ${factor}`, `${factor} × ${times + 1}`, `${times + 1} × ${factor}`]), paso1: `El número ${factor} aparece ${times} veces.`, paso2: `${answer} = ${times} × ${factor}.` };
             }
+            case 301: {
+                const base = 900 + rand(0, 40);
+                const ordinal = rand(11, 20);
+                if (questionNumber % 2 === 0) {
+                    const answer = ordinal - 1;
+                    return {
+                        strategyId: 301,
+                        prompt: `En la carrera del dragón, ${ordinal}.º va detrás de un participante. ¿En qué lugar va ese participante?`,
+                        answer,
+                        paso1: 'El puesto anterior es el número ordinal justo antes.',
+                        paso2: `Antes de ${ordinal}.º está ${answer}.º.`
+                    };
+                }
+                const jump = rand(2, 9);
+                const answer = base + jump;
+                return {
+                    strategyId: 301,
+                    prompt: `El dragón ha contado ${base} pasos y avanza ${jump} más. ¿Por qué número va?`,
+                    answer,
+                    paso1: `Continúa contando desde ${base}.`,
+                    paso2: `${base} + ${jump} = ${answer}.`
+                };
+            }
+            case 302: {
+                const hundreds = rand(1, 9);
+                const tens = rand(1, 9);
+                const units = rand(0, 9);
+                const number = hundreds * 100 + tens * 10 + units;
+                if (questionNumber % 3 === 0) {
+                    const answer = Math.round(number / 10) * 10;
+                    return {
+                        strategyId: 302,
+                        prompt: `La forja debe redondear ${number} a la decena más cercana. ¿Qué muestra el sello?`,
+                        answer,
+                        paso1: 'Si las unidades son 0 a 4 baja; si son 5 a 9 sube.',
+                        paso2: `${number} se redondea a ${answer}.`
+                    };
+                }
+                if (questionNumber % 3 === 1) {
+                    const answer = hundreds;
+                    return {
+                        strategyId: 302,
+                        prompt: `En ${number}, ¿cuántas centenas hay?`,
+                        answer,
+                        paso1: 'La cifra de la izquierda indica las centenas.',
+                        paso2: `${number} tiene ${hundreds} C, ${tens} D y ${units} U.`
+                    };
+                }
+                const answer = hundreds * 100 + tens * 10;
+                return {
+                    strategyId: 302,
+                    prompt: `Separa ${number}: ¿cuánto valen juntas sus centenas y decenas?`,
+                    answer,
+                    paso1: `Convierte las centenas: ${hundreds} C = ${hundreds * 100}. Convierte las decenas: ${tens} D = ${tens * 10}.`,
+                    paso2: `${hundreds * 100} + ${tens * 10} = ${answer}.`
+                };
+            }
+            case 303: {
+                if (questionNumber % 3 === 0) {
+                    const hundreds = rand(2, 9);
+                    const tens = rand(1, 9);
+                    const units = rand(0, 3);
+                    const subUnits = rand(units + 2, 9);
+                    const subHundreds = rand(1, hundreds - 1);
+                    const minuend = hundreds * 100 + tens * 10 + units;
+                    const subtrahend = subHundreds * 100 + rand(0, tens - 1) * 10 + subUnits;
+                    const answer = minuend - subtrahend;
+                    return {
+                        strategyId: 303,
+                        prompt: `Una poción tenía ${minuend} gotas. Se usaron ${subtrahend}. ¿Cuántas quedan?`,
+                        answer,
+                        paso1: `Como ${units} unidades no alcanzan para quitar ${subUnits}, haz un canje de una decena.`,
+                        paso2: `${minuend} - ${subtrahend} = ${answer}.`
+                    };
+                }
+                const a = rand(20, 99);
+                const b = rand(10, 99);
+                const c = rand(1, 9);
+                const answer = a + b + c;
+                return {
+                    strategyId: 303,
+                    prompt: `Junta tres pociones con ${a}, ${b} y ${c} gotas. ¿Cuántas gotas hay?`,
+                    answer,
+                    paso1: `Agrupa primero ${a} + ${b}; también puedes cambiar el orden sin alterar el total.`,
+                    paso2: `${a} + ${b} + ${c} = ${answer}.`
+                };
+            }
+            case 304: {
+                const steps = [2, 3, 4, 5, 10, 25, 50, 100];
+                const step = steps[(questionNumber - 1) % steps.length];
+                if (questionNumber % 3 === 0) {
+                    const times = rand(2, 5);
+                    const group = rand(2, 9);
+                    const answer = group * times;
+                    return {
+                        strategyId: 304,
+                        prompt: `Hay ${times} cofres con ${group} gemas cada uno. ¿Cuántas gemas hay en total?`,
+                        answer,
+                        paso1: `Son ${times} sumandos iguales de ${group}.`,
+                        paso2: `${Array(times).fill(group).join(' + ')} = ${answer}.`
+                    };
+                }
+                if (questionNumber % 3 === 1) {
+                    const start = questionNumber % 2 === 0 ? 0 : 5;
+                    const answer = start + step * 3;
+                    return {
+                        strategyId: 304,
+                        prompt: `Completa el mapa: ${start}, ${start + step}, ${start + step * 2}, ?`,
+                        answer,
+                        paso1: `La cadencia avanza de ${step} en ${step}.`,
+                        paso2: `${start + step * 2} + ${step} = ${answer}.`
+                    };
+                }
+                const total = rand(20, 80);
+                const part = rand(5, total - 5);
+                const answer = total - part;
+                return {
+                    strategyId: 304,
+                    prompt: `El mapa muestra ${part} + ? = ${total}. ¿Qué camino falta?`,
+                    answer,
+                    paso1: 'Suma y resta están relacionadas; resta la parte conocida al total.',
+                    paso2: `${total} - ${part} = ${answer}.`
+                };
+            }
             case 200: {
                 const exercises = [
                     {
@@ -357,7 +483,13 @@ window.DragonApp = window.DragonApp || {};
                 };
             }
             default:
-                return generateByStrategy(1);
+                return {
+                    strategyId: 301,
+                    prompt: 'El dragón cuenta 998 pasos y avanza uno. ¿Por qué número va?',
+                    answer: 999,
+                    paso1: 'Para contar un paso más, suma 1.',
+                    paso2: '998 + 1 = 999.'
+                };
         }
     }
 
