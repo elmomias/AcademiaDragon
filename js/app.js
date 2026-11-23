@@ -10,39 +10,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const categories = {
         math: [
-            [200, 'La brújula de los números ocultos', 'Valor posicional y descomposición: unidades, decenas y centenas'],
-            [1, 'El pacto de las diez gemas', 'Completar, descomponer y usar parejas del 10'],
-            [2, 'El sendero de las huellas infinitas', 'Puentes y sumas pasando por la decena'],
-            [3, 'El espejo gemelo del dragón', 'Cálculo directo e incógnitas'],
-            [4, 'El sendero de las huellas infinitas', 'Restas pasando por la decena inferior'],
-            [5, 'El espejo gemelo del dragón', 'Consecutivos usando el doble como apoyo'],
-            [6, 'El sendero de las huellas infinitas', 'Compensación con +10 y -1'],
-            [7, 'El sendero de las huellas infinitas', 'Descomposición con 10 y 1'],
-            [8, 'El sendero de las huellas infinitas', 'Complementarios exactos y tres sumandos'],
-            [9, 'El sendero de las huellas infinitas', 'Seleccionar la decena más cercana'],
-            [10, 'La balanza de los guardianes', 'Desglosar unidades y decenas'],
-            [11, 'La balanza de los guardianes', 'Pedir una decena y restar'],
-            [12, 'El círculo de las estrellas mágicas', 'Añadir ceros con seguridad'],
-            [13, 'La brújula de los números ocultos', 'Leer, descomponer y ordenar hasta 9999'],
-            [14, 'La balanza de los guardianes', 'Operaciones de hasta cuatro cifras'],
-            [15, 'El círculo de las estrellas mágicas', 'Rectas, paralelas, perpendiculares y ángulos'],
-            [16, 'El círculo de las estrellas mágicas', 'Tablas, suma repetida y factores']
+            [200, 'La brújula de los números ocultos', 'Sacos con parejas de 10 y saltos en la recta numérica'],
+            [1, 'El pacto de las diez gemas', 'Completar parejas que forman 10'],
+            [2, 'El sendero de las huellas infinitas', 'Sumar pasando por la decena'],
+            [3, 'El espejo gemelo del dragón', 'Dobles y completar unidades'],
+            [4, 'El sendero de las huellas infinitas', 'Restar pasando por la decena'],
+            [5, 'El espejo gemelo del dragón', 'Dobles más uno (números consecutivos)'],
+            [6, 'El sendero de las huellas infinitas', 'Sumar y restar 9'],
+            [7, 'El sendero de las huellas infinitas', 'Sumar y restar 11'],
+            [8, 'El sendero de las huellas infinitas', 'Complementos hasta 100'],
+            [9, 'El sendero de las huellas infinitas', 'Aproximar a la decena'],
+            [10, 'La balanza de los guardianes', 'Sumar descomponiendo unidades y decenas'],
+            [11, 'La balanza de los guardianes', 'Restar descomponiendo y pasando por la decena'],
+            [13, 'La brújula de los números ocultos', 'Series y patrones numéricos'],
+            [14, 'La balanza de los guardianes', 'Sumar y restar números de hasta cuatro cifras'],
+            [15, 'El círculo de las estrellas mágicas', 'Ángulos rectos y grados'],
         ],
         lengua: [
-            [1, 'La llave secreta de la torre', 'Escribe palabras completas correctamente'],
-            [2, 'La llave secreta de la torre', 'Practica la diéresis y el sonido suave'],
-            [3, 'El sello real del cronista', 'Reescribe oraciones y nombres propios'],
-            [4, 'El cofre de los ecos y espejos', 'Relaciona el significado de las palabras'],
-            [5, 'El pergamino de las voces concordantes', 'Clasifica palabras y tildes'],
-            [6, 'El pergamino de las voces concordantes', 'Género, número y sustitución nominal'],
-            [7, 'El pergamino de las voces concordantes', 'Concuerdan con el sustantivo'],
-            [8, 'El pergamino de las voces concordantes', 'Acciones y tiempos verbales'],
-            [9, 'El pergamino de las voces concordantes', 'Enunciativa, interrogativa y exclamativa'],
-            [10, 'El sello real del cronista', 'Punto, coma y signos de interrogación y exclamación'],
-            [11, 'El cofre de los ecos y espejos', 'Palabras derivadas de una primitiva'],
-            [12, 'El archivo perdido de la academia', 'Ordena ideas y evita repeticiones'],
-            [13, 'La llave secreta de la torre', 'Antes de b y p se escribe m'],
-            [14, 'La llave secreta de la torre', 'Distingue la letra final y su plural']
+            [1, 'La llave secreta de la torre', 'Ortografía C y Qu'],
+            [2, 'La llave secreta de la torre', 'G suave, Gu y Gü (diéresis)'],
+            [3, 'El sello real del cronista', 'Mayúsculas y nombres propios'],
+            [4, 'El cofre de los ecos y espejos', 'Sinónimos y antónimos'],
+            [5, 'El pergamino de las voces concordantes', 'Sílabas y acentuación'],
+            [6, 'El pergamino de las voces concordantes', 'Género, número y pronombres'],
+            [7, 'El pergamino de las voces concordantes', 'Adjetivos y concordancia'],
+            [8, 'El pergamino de las voces concordantes', 'Verbos y tiempos verbales'],
+            [9, 'El pergamino de las voces concordantes', 'Oraciones enunciativas, interrogativas y exclamativas'],
+            [10, 'El sello real del cronista', 'Puntos, comas y signos ¿!'],
+            [11, 'El cofre de los ecos y espejos', 'Familias de palabras y palabras derivadas'],
+            [12, 'El archivo perdido de la academia', 'Conectores, pronombres y cohesión'],
+            [13, 'La llave secreta de la torre', 'M antes de B y P'],
+            [14, 'La llave secreta de la torre', 'Z, D y cambio en el plural']
         ]
     };
 
@@ -589,13 +587,70 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.helpToggle.setAttribute('aria-expanded', 'true');
     }
 
+    function renderExercisePrompt(exercise) {
+        elements.prompt.replaceChildren();
+
+        const title = document.createElement('div');
+        title.className = 'visual-prompt-title';
+        title.textContent = exercise.prompt;
+        elements.prompt.appendChild(title);
+
+        if (!exercise.visual) return;
+
+        if (exercise.visual.type === 'sacks') {
+            const sacks = document.createElement('div');
+            sacks.className = 'sacks-visual';
+            sacks.setAttribute('aria-label', `Sacos con ${exercise.visual.values.join(', ')} piedras`);
+            exercise.visual.values.forEach((value, index) => {
+                const sack = document.createElement('div');
+                sack.className = 'dragon-sack';
+                sack.setAttribute('aria-label', `Saco ${index + 1}: ${value}`);
+
+                const stones = document.createElement('span');
+                stones.className = 'sack-stones';
+                stones.textContent = String(value);
+                sack.appendChild(stones);
+                sacks.appendChild(sack);
+            });
+            elements.prompt.appendChild(sacks);
+            return;
+        }
+
+        if (exercise.visual.type === 'number-line') {
+            const line = document.createElement('div');
+            line.className = 'number-line-visual';
+            line.setAttribute(
+                'aria-label',
+                `Recta numérica desde ${exercise.visual.start} con saltos ${exercise.visual.jumps.join(', ')}`
+            );
+
+            const start = document.createElement('div');
+            start.className = 'number-line-node start';
+            start.textContent = String(exercise.visual.start);
+            line.appendChild(start);
+
+            exercise.visual.jumps.forEach(jump => {
+                const step = document.createElement('div');
+                step.className = 'number-line-jump';
+                step.innerHTML = `<span>+${jump}</span><span class=\"number-line-arrow\" aria-hidden=\"true\">→</span>`;
+                line.appendChild(step);
+            });
+
+            const finish = document.createElement('div');
+            finish.className = 'number-line-node finish';
+            finish.textContent = '?';
+            line.appendChild(finish);
+            elements.prompt.appendChild(line);
+        }
+    }
+
     function renderExercise() {
         const exercise = state.exercise;
         closeHelpPanel();
         updateHelpCounter();
         elements.progress.textContent = `Ejercicio ${state.exerciseIndex} de ${state.sessionLength}`;
         elements.practiceCategory.textContent = state.categoryName;
-        elements.prompt.textContent = exercise.prompt;
+        renderExercisePrompt(exercise);
         elements.feedback.hidden = true;
         elements.feedback.className = 'feedback-box';
         elements.options.replaceChildren();
