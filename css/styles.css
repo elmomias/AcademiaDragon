@@ -58,6 +58,8 @@ button { touch-action: manipulation; }
 .header-actions { display: flex; align-items: center; gap: 0.55rem; }
 .header-btn { padding: 0.55rem 0.8rem; border-radius: 999px; background: rgba(255, 255, 255, 0.18); font-weight: 700; }
 .header-btn:hover { background: rgba(255, 255, 255, 0.28); }
+.header-home-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; white-space: nowrap; }
+.header-home-btn[aria-current="page"] { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85); }
 .student-label { font-weight: 700; }
 
 .container { width: min(960px, calc(100% - 2rem)); margin: 2rem auto 3rem; }
@@ -318,8 +320,39 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px 
 
 .story-picker { display: flex; align-items: center; gap: 0.5rem; }
 .story-picker select { min-width: 190px; }
-.story-card { margin: 1.5rem 0; padding: 1.5rem; border-left: 5px solid var(--accent); border-radius: 5px 15px 15px 5px; background: #fffbeb; font-size: 1.08rem; line-height: 1.8; }
-.story-card p { margin: 0; }
+.story-card { margin: 1.5rem 0; padding: 1.5rem; border-left: 5px solid var(--accent); border-radius: 5px 15px 15px 5px; background: #fffbeb; font-size: 1.08rem; line-height: 1.8; overflow-wrap: anywhere; }
+.story-card p { margin: 0 0 0.8rem; }
+.story-card p:last-child { margin-bottom: 0; }
+.story-card blockquote { margin: 0.7rem 0; padding: 0.55rem 0.75rem; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; background: color-mix(in srgb, var(--accent) 10%, white); color: inherit; font-style: italic; overflow-wrap: anywhere; }
+.fiction-notice { margin: 0 0 0.65rem; padding: 0.65rem 0.8rem; border: 1px solid #93c5fd; border-radius: 12px; background: #eff6ff; color: #1e3a8a; }
+.fiction-notice h2 { margin: 0 0 0.25rem; font-size: 0.95rem; }
+.fiction-notice p { margin: 0; line-height: 1.35; }
+.chronicle-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+.chronicle-heading h1 { margin: 0.35rem 0 0; font-size: clamp(1.45rem, 3vw, 2rem); }
+.chronicle-subtitle { margin: 0.25rem 0 0; color: var(--text-secondary); }
+.chronicle-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(285px, 0.75fr); gap: 1rem; align-items: start; }
+.chronicle-reading, .chronicle-sidebar { min-width: 0; }
+.chapter-status-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; margin-bottom: 0.65rem; }
+.chapter-status { min-height: 48px; padding: 0.55rem; border: 1px solid #c4b5fd; border-radius: 10px; color: #581c87; background: #faf5ff; font-size: 0.76rem; font-weight: 800; text-align: left; }
+.chapter-status[aria-current="step"] { outline: 3px solid #f59e0b; outline-offset: 1px; }
+.chapter-status.completed { color: #166534; border-color: #86efac; background: #f0fdf4; }
+.chapter-status.locked { color: #64748b; border-color: #cbd5e1; background: #f1f5f9; }
+.chronicle-question-box, .chapter-mission, .glossary-box { padding: 0.85rem 1rem; border: 1px solid color-mix(in srgb, var(--primary) 16%, #cbd5e1); border-radius: 14px; background: color-mix(in srgb, var(--soft-bg) 70%, white); }
+.chronicle-question-box h2, .chapter-mission h2 { margin: 0 0 0.7rem; font-size: 1.08rem; }
+.chronicle-reading .chronicle-question-box { margin-top: 0.65rem; }
+.chapter-mission { margin-top: 0.85rem; }
+.chapter-mission > div > p { margin: 0.25rem 0 0.55rem; font-size: 0.86rem; }
+.mission-group { display: grid; gap: 0.4rem; margin-top: 0.7rem; }
+.mission-group h3 { margin: 0; color: var(--primary-dark); font-size: 0.9rem; }
+.mission-activity { display: grid; grid-template-columns: 1.35rem 1fr; gap: 0.4rem; align-items: center; min-height: 47px; padding: 0.5rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 10px; color: #334155; background: #fff; cursor: pointer; text-align: left; }
+.mission-activity strong, .mission-activity small { display: block; }
+.mission-activity small { margin-top: 0.12rem; color: #64748b; font-size: 0.68rem; line-height: 1.25; }
+.mission-activity.passed { color: #166534; border-color: #86efac; background: #f0fdf4; cursor: default; opacity: 1; }
+.mission-check { color: #64748b; font-size: 1.15rem; font-weight: 900; }
+.mission-activity.passed .mission-check { color: #16a34a; }
+.glossary-box { margin-top: 0; }
+.glossary-box h2 { margin: 0 0 0.45rem; font-size: 1rem; color: var(--primary-dark); }
+.glossary-box p { margin: 0.2rem 0; font-size: 0.84rem; }
 
 .teacher-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .teacher-box { padding: 1.2rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; }
@@ -495,6 +528,12 @@ h1 {
     .header-btn {
         min-height: 40px;
         padding: 0.45rem 0.65rem;
+    }
+
+    .header-home-btn {
+        min-height: 40px;
+        padding: 0.45rem 0.55rem;
+        font-size: 0.82rem;
     }
 
     .view-card {
@@ -739,7 +778,32 @@ h1 {
         margin: 0.45rem 0;
         padding: 0.55rem 0.75rem;
         font-size: 0.98rem;
-        line-height: 1.35;
+        line-height: 1.5;
+    }
+
+    .chronicle-heading h1 {
+        font-size: 1.35rem;
+    }
+    .chronicle-layout {
+        grid-template-columns: minmax(0, 1.25fr) minmax(250px, 0.75fr);
+        gap: 0.65rem;
+    }
+    .chapter-status-list {
+        gap: 0.3rem;
+    }
+    .chapter-status {
+        min-height: 38px;
+        padding: 0.35rem;
+        font-size: 0.67rem;
+    }
+    .chapter-mission {
+        max-height: 245px;
+        overflow-y: auto;
+    }
+    .chronicle-question-box,
+    .chapter-mission,
+    .glossary-box {
+        padding: 0.55rem 0.7rem;
     }
 }
 
@@ -789,6 +853,10 @@ h1 {
         overflow-x: auto;
         justify-content: flex-start;
         padding-bottom: 0.15rem;
+    }
+
+    .chronicle-layout {
+        grid-template-columns: minmax(0, 1.15fr) minmax(250px, 0.85fr);
     }
 }
 
@@ -859,6 +927,10 @@ h1 {
 
 /* Theme switch */
 .theme-toggle {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 1000;
     min-height: 40px;
     display: inline-flex;
     align-items: center;
@@ -870,6 +942,26 @@ h1 {
     background: rgba(255, 255, 255, 0.16);
     cursor: pointer;
     font-weight: 800;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+:root[data-theme="light"] .theme-toggle,
+:root:not([data-theme]) .theme-toggle {
+    color: #172033;
+    border: 1px solid #94a3b8;
+    background: #ffffff;
+}
+
+:root[data-theme="light"] .theme-toggle:hover,
+:root:not([data-theme]) .theme-toggle:hover {
+    background: #eff6ff;
+    border-color: #2563eb;
+}
+
+:root[data-theme="light"] .theme-toggle-track,
+:root:not([data-theme]) .theme-toggle-track {
+    background: #dbeafe;
 }
 
 .theme-toggle-track {
@@ -916,10 +1008,21 @@ h1 {
 :root[data-theme="dark"] .teacher-box,
 :root[data-theme="dark"] .activity-progress-row,
 :root[data-theme="dark"] .story-card,
-:root[data-theme="dark"] .drag-drop-zone {
+:root[data-theme="dark"] .fiction-notice,
+:root[data-theme="dark"] .drag-drop-zone,
+:root[data-theme="dark"] .chronicle-question-box,
+:root[data-theme="dark"] .chapter-mission,
+:root[data-theme="dark"] .glossary-box,
+:root[data-theme="dark"] .mission-activity {
     border-color: rgba(203, 213, 225, 0.28);
     background: var(--bg-surface);
     box-shadow: none;
+}
+
+:root[data-theme="dark"] .story-card blockquote {
+    border-left-color: #60a5fa;
+    background: #323846;
+    color: #f1f5f9;
 }
 
 :root[data-theme="dark"] .category-btn,
@@ -969,6 +1072,10 @@ h1 {
     color: var(--text-main);
 }
 
+:root[data-theme="dark"] .fiction-notice {
+    color: #bfdbfe;
+}
+
 :root[data-theme="dark"] input,
 :root[data-theme="dark"] select,
 :root[data-theme="dark"] .option-btn,
@@ -986,7 +1093,11 @@ h1 {
 :root[data-theme="dark"] .teacher-box,
 :root[data-theme="dark"] .category-btn,
 :root[data-theme="dark"] .remember-category,
-:root[data-theme="dark"] .story-card {
+:root[data-theme="dark"] .story-card,
+:root[data-theme="dark"] .chronicle-question-box,
+:root[data-theme="dark"] .chapter-mission,
+:root[data-theme="dark"] .glossary-box,
+:root[data-theme="dark"] .mission-activity {
     background: var(--bg-control);
 }
 
@@ -996,6 +1107,20 @@ h1 {
 
 :root[data-theme="dark"] .theme-toggle-track {
     background: #1d2128;
+}
+
+:root[data-theme="dark"] .chapter-mission,
+:root[data-theme="dark"] .chapter-mission h2,
+:root[data-theme="dark"] .chapter-mission p,
+:root[data-theme="dark"] .chapter-mission h3,
+:root[data-theme="dark"] .mission-activity,
+:root[data-theme="dark"] .mission-activity strong,
+:root[data-theme="dark"] .mission-activity small {
+    color: #f1f5f9;
+}
+
+:root[data-theme="dark"] .chapter-mission .eyebrow {
+    color: #67e8f9;
 }
 
 :root[data-theme="dark"] .header-btn {
@@ -1059,6 +1184,22 @@ h1 {
 :root[data-theme="dark"] .feedback-box.success {
     color: #dcfce7;
     background: #166534;
+}
+
+:root[data-theme="dark"] .chapter-status.completed {
+    color: #d1fae5;
+    border-color: #4ade80;
+    background: #14532d;
+}
+
+:root[data-theme="dark"] .mission-activity.passed {
+    color: #ecfdf5;
+    border-color: #4ade80;
+    background: #14532d;
+}
+
+:root[data-theme="dark"] .mission-activity.passed .mission-check {
+    color: #86efac;
 }
 
 :root[data-theme="dark"] .feedback-box.error {
@@ -1293,6 +1434,8 @@ h1 {
     }
 
     .theme-toggle {
+        right: max(10px, env(safe-area-inset-right));
+        bottom: max(10px, env(safe-area-inset-bottom));
         min-width: 40px;
         justify-content: center;
         padding: 0.35rem;

@@ -5,17 +5,36 @@ window.DragonApp = window.DragonApp || {};
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
     const questionCounters = {};
+    const pickStates = {};
+    const itemKey = item => JSON.stringify(item);
+    const shuffleItems = values => {
+        const shuffled = [...values];
+        for (let index = shuffled.length - 1; index > 0; index -= 1) {
+            const swapIndex = rand(0, index);
+            [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+        }
+        return shuffled;
+    };
     const pick = (values, options = {}) => {
         const rawQuestion = options.questionNumber ?? options.index;
         const questionNumber = Number.isInteger(Number(rawQuestion))
             ? Math.min(20, Math.max(1, Number(rawQuestion)))
             : rand(1, 20);
-        const split = Math.max(1, Math.ceil(values.length / 2));
-        const pool = questionNumber <= 10
-            ? values.slice(0, split)
-            : values.slice(split);
-        const available = pool.length ? pool : values;
-        return available[rand(0, available.length - 1)];
+        const key = String(options.strategyId ?? itemKey(values));
+        if (questionNumber === 1 || !pickStates[key]) {
+            pickStates[key] = { bag: [], lastKey: null };
+        }
+        const state = pickStates[key];
+        if (!state.bag.length) {
+            state.bag = shuffleItems(values);
+            if (state.lastKey && state.bag.length > 1
+                && itemKey(state.bag[0]) === state.lastKey) {
+                [state.bag[0], state.bag[1]] = [state.bag[1], state.bag[0]];
+            }
+        }
+        const selected = state.bag.shift();
+        state.lastKey = itemKey(selected);
+        return selected;
     };
     const easyFormat = questionNumber => Number(questionNumber) <= 10
         ? rand(1, 2)
@@ -30,7 +49,11 @@ window.DragonApp = window.DragonApp || {};
         ['pe__eño', 'qu', 'pequeño', 'peceno', 'pequeno', "El sonido /k/ se escribe con «qu» en «que»."],
         ['_asa', 'c', 'casa', 'qasa', 'caza', "Delante de a, el sonido /k/ se escribe con «c»."],
         ['_uaderno', 'c', 'cuaderno', 'quaderno', 'cuadernoo', "Delante de ua, el sonido /k/ se escribe con «c»."],
-        ['bos__e', 'qu', 'bosque', 'bosce', 'bosqe', "La sílaba «que» se escribe con «qu»."]
+        ['bos__e', 'qu', 'bosque', 'bosce', 'bosqe', "La sílaba «que» se escribe con «qu»."],
+        ['__ema', 'qu', 'quema', 'cema', 'quemaá', "Delante de e, el sonido /k/ se escribe con «qu»."],
+        ['_oche', 'c', 'coche', 'quoche', 'coce', "Delante de o, el sonido /k/ se escribe con «c»."],
+        ['__into', 'qu', 'quinto', 'cinto', 'quintoó', "Delante de i, el sonido /k/ se escribe con «qu»."],
+        ['_ubo', 'c', 'cubo', 'qubo', 'cuvó', "Delante de u, el sonido /k/ se escribe con «c»."]
     ];
     const orthographyG = [
         ['pira__ista', 'gü', 'piragüista', 'piraguista', 'piragüixta', 'La u suena en güe/güi, por eso lleva diéresis.'],
@@ -40,7 +63,11 @@ window.DragonApp = window.DragonApp || {};
         ['pin__ino', 'gü', 'pingüino', 'pinguino', 'pingüina', 'En güi la u suena y lleva diéresis.'],
         ['ver__enza', 'gü', 'vergüenza', 'verguenza', 'vergüensa', 'En güe la u suena y lleva diéresis.'],
         ['__itarra', 'gu', 'guitarra', 'gitarra', 'güitarra', 'La u no suena en gui: se escribe gu.'],
-        ['ho__era', 'gu', 'hoguera', 'hogüera', 'hogera', 'En gue la u no suena y no lleva diéresis.']
+        ['ho__era', 'gu', 'hoguera', 'hogüera', 'hogera', 'En gue la u no suena y no lleva diéresis.'],
+        ['anti__edad', 'gü', 'antigüedad', 'antiguedad', 'antigüedaz', 'En güe la u suena y lleva diéresis.'],
+        ['se__ir', 'gu', 'seguir', 'següir', 'segir', 'En gui la u no suena: se escribe gu.'],
+        ['bilin__e', 'gü', 'bilingüe', 'bilingue', 'bilingüeé', 'En güe la u suena y lleva diéresis.'],
+        ['re__ero', 'gu', 'reguero', 'regüero', 'regero', 'En gue la u no suena y no lleva diéresis.']
     ];
     const orthographyMbMp = [
         ['so__ra', 'mb', 'sombra', 'somra', 'sonbra', 'Antes de b y p se escribe m, no n.'],
@@ -80,7 +107,11 @@ window.DragonApp = window.DragonApp || {};
         ['sinónimo', 'frío', 'helado', 'Frío y helado expresan temperatura baja.'],
         ['antónimo', 'abrir', 'cerrar', 'Abrir y cerrar son acciones contrarias.'],
         ['sinónimo', 'enorme', 'gigante', 'Enorme y gigante indican gran tamaño.'],
-        ['antónimo', 'duro', 'blando', 'Duro y blando expresan cualidades opuestas.']
+        ['antónimo', 'duro', 'blando', 'Duro y blando expresan cualidades opuestas.'],
+        ['sinónimo', 'bonito', 'hermoso', 'Bonito y hermoso expresan algo agradable a la vista.'],
+        ['antónimo', 'rápido', 'lento', 'Rápido y lento indican velocidades contrarias.'],
+        ['sinónimo', 'hablar', 'conversar', 'Hablar y conversar tienen significados parecidos.'],
+        ['antónimo', 'lleno', 'vacío', 'Lleno y vacío describen estados contrarios.']
     ];
     const syllables = [
         ['sol', 'monosílaba', 'Sol tiene una sola sílaba.'],
@@ -90,7 +121,11 @@ window.DragonApp = window.DragonApp || {};
         ['árbol', 'llana', 'Árbol es llana y lleva tilde por terminar en consonante distinta de n o s.'],
         ['café', 'aguda', 'Café es aguda y lleva tilde por terminar en vocal.'],
         ['ratón', 'aguda', 'Ra-tón tiene dos sílabas y la fuerza está en la última.'],
-        ['música', 'esdrújula', 'Mú-si-ca tiene la fuerza en la antepenúltima sílaba.']
+        ['música', 'esdrújula', 'Mú-si-ca tiene la fuerza en la antepenúltima sílaba.'],
+        ['reloj', 'aguda', 'Re-loj tiene dos sílabas y acento en la última.'],
+        ['nube', 'llana', 'Nu-be tiene la fuerza en la penúltima sílaba.'],
+        ['pájaro', 'esdrújula', 'Pá-ja-ro lleva la fuerza en la antepenúltima sílaba.'],
+        ['elefante', 'polisílaba', 'E-le-fan-te tiene cuatro sílabas.']
     ];
     const grammar = [
         ['Escribe el plural de «libro».', 'libros', 'En singular se dice libro; en plural, libros.'],
@@ -150,7 +185,11 @@ window.DragonApp = window.DragonApp || {};
         ['caserón', 'casa', 'Caserón deriva de casa.'],
         ['jardinero', 'jardín', 'Jardinero pertenece a la familia de jardín.'],
         ['cazador', 'caza', 'Cazador deriva de caza.'],
-        ['pescador', 'pez', 'Pescador pertenece a la familia de pez.']
+        ['pescador', 'pez', 'Pescador pertenece a la familia de pez.'],
+        ['dorado', 'oro', 'Dorado deriva de la palabra primitiva oro.'],
+        ['salero', 'sal', 'Salero pertenece a la familia de sal.'],
+        ['pelotazo', 'pelota', 'Pelotazo deriva de pelota.'],
+        ['soleado', 'sol', 'Soleado pertenece a la familia de sol.']
     ];
     const cohesion = [
         ['El gato duerme. _ ronronea.', 'Él', 'El pronombre Él sustituye al sustantivo gato y evita la repetición.'],
@@ -234,12 +273,8 @@ window.DragonApp = window.DragonApp || {};
         );
     }
 
-    function recoveryItem(items, questionNumber) {
-        const split = Math.ceil(items.length / 2);
-        const pool = Number(questionNumber) <= 10
-            ? items.slice(0, split)
-            : items.slice(split);
-        return pool[rand(0, pool.length - 1)];
+    function recoveryItem(items, questionNumber, strategyId) {
+        return pick(items, { questionNumber, strategyId });
     }
 
     function generateRecovery2ByStrategy(strategyId, questionNumber) {
@@ -269,8 +304,32 @@ window.DragonApp = window.DragonApp || {};
                         answer: 'para comunicarse',
                         paso1: 'La segunda frase explica la función de la luz.',
                         paso2: 'Las luciérnagas usan la luz para comunicarse.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «El guardián dejó tres runas azules junto a la puerta del norte». ¿Cuántas runas dejó?',
+                        answer: 'tres',
+                        paso1: 'Busca el número que aparece antes de las runas.',
+                        paso2: 'El guardián dejó tres runas.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «Arabia buscó primero en la torre y después revisó el jardín». ¿Qué revisó después?',
+                        answer: 'el jardín',
+                        paso1: 'Localiza la acción que aparece después de la palabra «después».',
+                        paso2: 'Arabia revisó el jardín después de la torre.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «La pócima olía a menta porque contenía hojas frescas». ¿Por qué olía a menta?',
+                        answer: 'porque contenía hojas frescas',
+                        paso1: 'La palabra «porque» introduce la causa.',
+                        paso2: 'Olía a menta porque contenía hojas frescas.'
+                    },
+                    {
+                        prompt: 'CT1 · Lee: «Noah siguió un camino estrecho que terminaba en un puente de madera». ¿Cómo era el camino?',
+                        answer: 'estrecho',
+                        paso1: 'Busca el adjetivo que describe el camino.',
+                        paso2: 'El camino era estrecho.'
                     }
-                ], questionNumber);
+                ], questionNumber, 401);
                 return { strategyId: 401, prompt: item.prompt, answer: item.answer, paso1: item.paso1, paso2: item.paso2 };
             }
             case 402: {
@@ -298,8 +357,32 @@ window.DragonApp = window.DragonApp || {};
                         answer: 'interrogativa',
                         paso1: 'Observa si pregunta, expresa emoción o informa.',
                         paso2: 'Formula una pregunta, por eso es interrogativa.'
+                    },
+                    {
+                        prompt: 'CT2 · Escribe un sinónimo de «veloz»: rápido / pesado / antiguo.',
+                        answer: 'rápido',
+                        paso1: 'Un sinónimo expresa un significado parecido.',
+                        paso2: 'Veloz y rápido significan algo parecido.'
+                    },
+                    {
+                        prompt: 'CT2 · Completa para que concuerde: «El castillo es _____».',
+                        answer: 'antiguo',
+                        paso1: 'El adjetivo debe concordar en masculino singular.',
+                        paso2: '«El castillo es antiguo» concuerda correctamente.'
+                    },
+                    {
+                        prompt: 'CT2 · Sustituye «Mouna y Carmen» por un pronombre.',
+                        answer: 'Ellas',
+                        paso1: 'Nombra a dos personas en femenino plural.',
+                        paso2: 'El pronombre adecuado es «Ellas».'
+                    },
+                    {
+                        prompt: 'CT2 · Escribe el antónimo de «encender»: apaga, apagar, apagarás.',
+                        answer: 'apagar',
+                        paso1: 'Busca la acción que expresa lo contrario.',
+                        paso2: 'Encender y apagar son acciones contrarias.'
                     }
-                ], questionNumber);
+                ], questionNumber, 402);
                 return { strategyId: 402, prompt: item.prompt, answer: item.answer, paso1: item.paso1, paso2: item.paso2 };
             }
             case 403: {
@@ -327,8 +410,32 @@ window.DragonApp = window.DragonApp || {};
                         answer: 'Marta guardó el mapa.',
                         paso1: 'Comprueba mayúscula inicial y punto final.',
                         paso2: '«Marta» empieza con mayúscula y la oración termina con punto.'
+                    },
+                    {
+                        prompt: 'CT2 · Completa con un conector: «Llovía _____ buscaron refugio». Usa sin embargo o porque.',
+                        answer: 'porque',
+                        paso1: 'El conector debe indicar la causa de buscar refugio.',
+                        paso2: 'Buscaron refugio porque llovía.'
+                    },
+                    {
+                        prompt: 'CT2 · Evita repetir «la llave»: «Israel encontró la llave. La llave era azul». Sustituye la segunda aparición.',
+                        answer: 'Era azul',
+                        paso1: 'Puedes suprimir el sujeto porque ya se entiende.',
+                        paso2: '«Israel encontró la llave. Era azul» evita repetir el sustantivo.'
+                    },
+                    {
+                        prompt: 'CT2 · ¿Qué signo termina «Alicia encontró el cofre_____»?',
+                        answer: '.',
+                        paso1: 'La oración afirma algo y termina.',
+                        paso2: 'Una oración enunciativa termina con punto.'
+                    },
+                    {
+                        prompt: 'CT2 · Ordena: encontró la pista; leyó el pergamino; abrió el cofre. Responde con los números 1, 2 y 3.',
+                        answer: '1, 2, 3',
+                        paso1: 'Primero debe encontrar la pista, después leerla y al final abrir.',
+                        paso2: 'El orden es: encontró (1), leyó (2), abrió (3). La respuesta es 1, 2, 3.'
                     }
-                ], questionNumber);
+                ], questionNumber, 403);
                 return { strategyId: 403, prompt: item.prompt, answer: item.answer, paso1: item.paso1, paso2: item.paso2 };
             }
             default: {
@@ -350,7 +457,7 @@ window.DragonApp = window.DragonApp || {};
             ? Math.min(20, Math.max(1, requestedQuestion))
             : ((questionCounters[id] || 0) % 20) + 1;
         questionCounters[id] = questionNumber;
-        const settings = { ...options, questionNumber };
+        const settings = { ...options, questionNumber, strategyId: id };
         if (id >= 401 && id <= 403) {
             return generateRecovery2ByStrategy(id, questionNumber);
         }
@@ -359,7 +466,7 @@ window.DragonApp = window.DragonApp || {};
             const [text, answer, rule] = pick(capitals, settings);
             const format = easyFormat(questionNumber);
             if (format === 0) return writtenQuestion(3, `Escribe correctamente: «${text}».`, answer, 'Revisa el comienzo de la oración y los nombres propios.', rule);
-            if (format === 1) return selectionQuestion(3, '¿Qué oración está escrita correctamente?', answer, [text, text.replace(answer.split(' ').slice(-1)[0], 'madrid')], 'Revisa mayúsculas y nombres propios.', rule);
+            if (format === 1) return selectionQuestion(3, `Selecciona la versión correcta de: «${text}».`, answer, [text, text.replace(answer.split(' ').slice(-1)[0], 'madrid')], 'Revisa mayúsculas y nombres propios.', rule);
             const firstLetter = text.charAt(0).toUpperCase();
             return dragQuestion(3, `Arrastra la mayúscula necesaria al comienzo: «${text}».`, firstLetter, ['A', 'B', 'M', 'S'], 'La primera palabra de la oración comienza en mayúscula.', rule);
         }

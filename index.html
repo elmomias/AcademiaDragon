@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Academia del Dragón</title>
-    <link rel="stylesheet" href="css/styles.css?v=7">
+    <link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 <body>
     <div id="app" class="theme-neutral">
@@ -12,9 +12,13 @@
             <button id="btn-home" class="logo-btn" type="button" aria-label="Volver al inicio">🐉 Academia del Dragón</button>
             <div class="header-actions">
                 <span id="student-name-label" class="student-label" hidden></span>
+                <button id="btn-header-home" class="header-btn header-home-btn" type="button" aria-label="Volver a la pantalla de inicio" title="Volver a la pantalla de inicio">
+                    <span aria-hidden="true">🏰</span>
+                    <span>Inicio</span>
+                </button>
                 <button id="btn-edit-name" class="header-btn" type="button" hidden title="Cambiar nombre">✏️ Nombre</button>
                 <button id="btn-teacher-panel" class="header-btn" type="button">⚙️ Profesor</button>
-                <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Activar modo oscuro" title="Cambiar entre modo claro y oscuro">
+                <button id="theme-toggle" class="theme-toggle theme-toggle-floating" type="button" role="switch" aria-checked="false" aria-label="Activar modo oscuro" title="Cambiar entre modo claro y oscuro">
                     <span class="theme-toggle-track" aria-hidden="true">
                         <span class="theme-toggle-icon">☀️</span>
                     </span>
@@ -65,8 +69,8 @@
                     </button>
                     <button class="subject-card mystery-card" type="button" data-subject="mystery">
                         <span class="subject-icon">🕵️‍♂️</span>
-                        <span class="subject-title">Historias de Misterio</span>
-                        <span>Crear historia con tus saberes superados</span>
+                        <span class="subject-title">Crónicas de la Antigua Bañeza</span>
+                        <span>El Secreto del Dragón del Órbigo · Lectura por capítulos</span>
                         <small id="mystery-unlock-status"></small>
                     </button>
                 </div>
@@ -157,16 +161,39 @@
             <section id="view-mystery" class="view-card mystery-panel" hidden>
                 <div class="view-toolbar">
                     <button id="btn-mystery-back" class="text-btn" type="button">← Asignaturas</button>
-                    <label class="story-picker">Historia
-                        <select id="mystery-story-selector"></select>
+                    <label class="story-picker">Capítulo
+                        <select id="mystery-story-selector" aria-label="Capítulos de la crónica"></select>
                     </label>
                 </div>
-                <div id="mystery-step" class="status-badge"></div>
-                <h1 id="mystery-title"></h1>
-                <div class="story-card"><p id="mystery-text"></p></div>
-                <h2 id="mystery-prompt"></h2>
-                <div id="mystery-options" class="options-grid"></div>
-                <div id="mystery-feedback" class="feedback-box" aria-live="polite" hidden></div>
+                <div class="chronicle-heading">
+                    <div>
+                        <div id="mystery-step" class="status-badge"></div>
+                        <h1 id="mystery-title"></h1>
+                        <p id="mystery-subtitle" class="chronicle-subtitle"></p>
+                    </div>
+                </div>
+                <div class="chronicle-layout">
+                    <div class="chronicle-reading">
+                        <div id="mystery-chapters" class="chapter-status-list" aria-label="Estado de los capítulos"></div>
+                        <aside id="mystery-fiction-note" class="fiction-notice" hidden>
+                            <h2 id="mystery-fiction-note-title">Una historia de ficción</h2>
+                            <p id="mystery-fiction-note-text"></p>
+                        </aside>
+                        <article id="mystery-text" class="story-card" aria-label="Texto del capítulo"></article>
+                        <section class="chronicle-question-box">
+                            <h2 id="mystery-prompt"></h2>
+                            <div id="mystery-options" class="options-grid"></div>
+                            <div id="mystery-feedback" class="feedback-box" aria-live="polite" hidden></div>
+                        </section>
+                    </div>
+                    <aside class="chronicle-sidebar">
+                        <section class="glossary-box" aria-labelledby="mystery-glossary-title">
+                            <h2 id="mystery-glossary-title">Palabras del capítulo</h2>
+                            <div id="mystery-glossary"></div>
+                        </section>
+                        <section id="mystery-mission" class="chapter-mission" hidden></section>
+                    </aside>
+                </div>
             </section>
 
             <section id="view-teacher" class="view-card" hidden>
@@ -222,8 +249,9 @@
 
     <script src="js/services/storage.js"></script>
     <script src="js/engine/generator_math.js?v=8"></script>
-    <script src="js/engine/generator_lengua.js?v=6"></script>
+    <script src="js/engine/generator_lengua.js?v=7"></script>
+    <script src="js/engine/generator_story.js?v=4"></script>
     <script src="js/engine/generator.js"></script>
-    <script src="js/app.js?v=7"></script>
+    <script src="js/app.js?v=12"></script>
 </body>
 </html>

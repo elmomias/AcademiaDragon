@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const Storage = window.DragonApp.Storage;
     const MathGenerator = window.DragonApp.GeneratorMath;
     const LanguageGenerator = window.DragonApp.GeneratorLengua;
-    const MysteryGenerator = window.DragonApp.GeneratorMystery;
+    const Story = window.DragonApp.Story;
     const SESSION_LENGTH = 20;
     const THEME_STORAGE_KEY = 'dragon_theme_preference_v1';
 
@@ -116,19 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         helpOpen: false
     };
 
-    const mysteryNarrativeTitles = {
-        1: 'El secreto de la biblioteca cerrada',
-        2: 'La brújula del patio',
-        3: 'El mensaje cifrado del castillo',
-        4: 'La desaparición del pergamino',
-        5: 'El laboratorio del relojero',
-        6: 'La clase sale de expedición'
-    };
-
-    function getMysteryNarrativeTitle(storyId, fallbackTitle) {
-        return mysteryNarrativeTitles[Number(storyId)] || fallbackTitle;
-    }
-
     function getSavedTheme() {
         try {
             return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
@@ -147,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toggle.setAttribute('aria-checked', String(isDark));
             toggle.setAttribute('aria-label', isDark ? 'Activar modo claro' : 'Activar modo oscuro');
             toggle.title = isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+            toggle.classList.toggle('is-dark', isDark);
             const icon = toggle.querySelector('.theme-toggle-icon');
             if (icon) icon.textContent = isDark ? '🌙' : '☀️';
         }
@@ -175,7 +163,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (name !== 'practice') {
             setNumericKeypadVisible(false);
         }
+        const headerHome = document.getElementById('btn-header-home');
+        if (headerHome) {
+            if (name === 'hub') {
+                headerHome.setAttribute('aria-current', 'page');
+            } else {
+                headerHome.removeAttribute('aria-current');
+            }
+        }
         setTheme(theme);
+    }
+
+    function goHome() {
+        clearTimeout(state.timer);
+        state.exercise = null;
+        state.answered = false;
+        closeHelpPanel();
+        setNumericKeypadVisible(false);
+        elements.answerInput.value = '';
+        if (!elements.feedback.hidden) elements.feedback.hidden = true;
+        const data = Storage.getData();
+        renderIdentity();
+        showView(data.name ? 'hub' : 'name');
     }
 
     function renderIdentity() {
@@ -187,9 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.nameLabel.hidden = !hasName;
         elements.editName.hidden = !hasName;
         elements.recoveryBadge.hidden = !data.modoRecuperacion;
-        elements.mysteryUnlockStatus.textContent = unlock.canCreate
-            ? `${unlock.unlockedStories} historia${unlock.unlockedStories === 1 ? '' : 's'} disponible${unlock.unlockedStories === 1 ? '' : 's'}. ${storyProgressMessage(unlock)}`
-            : storyProgressMessage(unlock);
+        const openChapterCount = Story.getChapters().filter(chapter =>
+            isChapterOpen(chapter.id, data)
+        ).length;
+        elements.mysteryUnlockStatus.textContent =
+            `${openChapterCount} de 4 capítulos abierto${openChapterCount === 1 ? '' : 's'}. El primero está disponible desde el inicio.`;
         renderContinuationPanel(data, unlock);
     }
 
@@ -273,19 +284,17 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.continuationActions.replaceChildren();
         elements.continuationPending.replaceChildren();
 
-        if (unlock.canCreate) {
-            elements.continuationMessage.textContent =
-                `¡Has desbloqueado ${unlock.unlockedStories} historia${unlock.unlockedStories === 1 ? '' : 's'}! Si te apetece, ya puedes abrir una aventura de misterio.`;
-            const mysteryButton = document.createElement('button');
-            mysteryButton.type = 'button';
-            mysteryButton.className = 'action-btn mystery-action continuation-button';
-            mysteryButton.textContent = 'Abrir historia desbloqueada';
-            mysteryButton.addEventListener('click', openMystery);
-            elements.continuationActions.appendChild(mysteryButton);
-        } else {
-            elements.continuationMessage.textContent =
-                `${storyProgressMessage(unlock)} Puedes elegir la aventura que prefieras y avanzar a tu ritmo.`;
-        }
+        const openChapterCount = Story.getChapters().filter(chapter =>
+            isChapterOpen(chapter.id, data)
+        ).length;
+        elements.continuationMessage.textContent =
+            `Crónicas de la Antigua Bañeza: tienes ${openChapterCount} de 4 capítulos abiertos. El primer capítulo ya se puede leer.`;
+        const mysteryButton = document.createElement('button');
+        mysteryButton.type = 'button';
+        mysteryButton.className = 'action-btn mystery-action continuation-button';
+        mysteryButton.textContent = 'Continuar la crónica';
+        mysteryButton.addEventListener('click', openMystery);
+        elements.continuationActions.appendChild(mysteryButton);
 
         if (suggestion) {
             elements.continuationActions.appendChild(createContinuationButton(
@@ -831,63 +840,223 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
+    function getChapterProgress(data, chapterId) {
+        const stored = Number(data.misterioProgreso[`baneza-${chapterId}`]) || 0;
+        return Math.min(3, Math.max(0, stored));
+    }
+
+    function missionActivityIds(chapter, subject, data) {
+        if (!chapter.unlock) return [];
+        if (data.modoRecuperacion) {
+            return subject === 'math' ? [301, 302, 303, 304] : [401, 402, 403];
+        }
+        return chapter.unlock[subject];
+    }
+
+    function isGreenActivity(data, subject, strategyId) {
+        return (data.actividadesCompletadas || []).some(activity =>
+            activity.subject === subject
+            && Number(activity.strategyId) === Number(strategyId)
+            && activity.superada
+        );
+    }
+
+    function isGreenMissionActivity(data, subject, strategyId) {
+        const list = availableCategoriesFor(data, subject);
+        const definition = list.find(([id]) => Number(id) === Number(strategyId));
+        if (!definition) return isGreenActivity(data, subject, strategyId);
+        return list
+            .filter(([, title]) => title === definition[1])
+            .some(([id]) => isGreenActivity(data, subject, id));
+    }
+
+    function isMissionAreaComplete(chapter, subject, data) {
+        return missionActivityIds(chapter, subject, data).some(id =>
+            isGreenMissionActivity(data, subject, id)
+        );
+    }
+
+    function isChapterMissionComplete(chapter, data) {
+        return !chapter.unlock || (
+            isMissionAreaComplete(chapter, 'math', data)
+            && isMissionAreaComplete(chapter, 'lengua', data)
+        );
+    }
+
+    function isChapterOpen(chapterId, data) {
+        const chapters = Story.getChapters();
+        const index = chapters.findIndex(chapter => chapter.id === Number(chapterId));
+        if (index <= 0) return true;
+        const previous = chapters[index - 1];
+        return getChapterProgress(data, previous.id) >= previous.questions.length
+            && isChapterMissionComplete(previous, data);
+    }
+
     function renderStorySelector() {
         const selector = document.getElementById('mystery-story-selector');
-        const unlock = Storage.getStoryUnlockStatus();
+        const data = Storage.getData();
         selector.replaceChildren();
-        MysteryGenerator.getMysteryStoriesList().slice(0, unlock.unlockedStories).forEach(story => {
+        Story.getChapters().forEach(chapter => {
+            const open = isChapterOpen(chapter.id, data);
+            const completed = getChapterProgress(data, chapter.id) >= chapter.questions.length;
             const option = document.createElement('option');
-            option.value = String(story.id);
-            option.textContent = getMysteryNarrativeTitle(story.id, story.title);
-            option.selected = story.id === state.mysteryStoryId;
+            option.value = String(chapter.id);
+            option.textContent = `${open ? '🔓' : '🔒'} Capítulo ${chapter.id}${completed ? ' · Completado' : ''}`;
+            option.disabled = !open;
+            option.selected = chapter.id === state.mysteryStoryId;
             selector.appendChild(option);
+        });
+    }
+
+    function renderChapterStatuses(data) {
+        const container = document.getElementById('mystery-chapters');
+        container.replaceChildren();
+        Story.getChapters().forEach(chapter => {
+            const open = isChapterOpen(chapter.id, data);
+            const completed = getChapterProgress(data, chapter.id) >= chapter.questions.length;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `chapter-status ${open ? 'open' : 'locked'}${completed ? ' completed' : ''}`;
+            button.textContent = `${completed ? '✓' : open ? '🔓' : '🔒'} ${chapter.id}. ${chapter.title.replace(/^Capítulo \d+: /, '')}`;
+            button.disabled = !open;
+            button.setAttribute('aria-current', chapter.id === state.mysteryStoryId ? 'step' : 'false');
+            button.addEventListener('click', () => {
+                state.mysteryStoryId = chapter.id;
+                renderMystery();
+            });
+            container.appendChild(button);
+        });
+    }
+
+    function missionEntry(subject, id, data) {
+        const passed = isGreenMissionActivity(data, subject, id);
+        const definition = availableCategoriesFor(data, subject)
+            .find(([categoryId]) => Number(categoryId) === Number(id));
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `mission-activity ${passed ? 'passed' : ''}`;
+        button.dataset.subject = subject;
+        button.dataset.categoryId = String(id);
+        button.innerHTML = `
+            <span class="mission-check" aria-hidden="true">${passed ? '✓' : '○'}</span>
+            <span><strong>${escapeHtml(definition ? definition[1] : categoryName(subject, id))}</strong>
+            <small>${escapeHtml(definition ? definition[2] : `Actividad ${id}`)}</small></span>
+        `;
+        if (passed) {
+            button.disabled = true;
+            button.setAttribute('aria-label', `${categoryName(subject, id)}, superada en verde`);
+        } else {
+            button.setAttribute('aria-label', `${categoryName(subject, id)}, pendiente`);
+            button.addEventListener('click', () => {
+                state.subject = subject;
+                startSession(id, definition ? definition[1] : categoryName(subject, id));
+            });
+        }
+        return button;
+    }
+
+    function renderChapterMission(chapter, data) {
+        const mission = document.getElementById('mystery-mission');
+        mission.replaceChildren();
+        if (!chapter.unlock) {
+            mission.hidden = true;
+            return;
+        }
+        mission.hidden = false;
+        const mathDone = isMissionAreaComplete(chapter, 'math', data);
+        const languageDone = isMissionAreaComplete(chapter, 'lengua', data);
+        const heading = document.createElement('div');
+        heading.innerHTML = `
+            <p class="eyebrow">${data.modoRecuperacion ? 'Misión de Recuperación 2.º' : 'Misión para abrir el capítulo siguiente'}</p>
+            <h2>${mathDone && languageDone ? '¡Misión completada!' : 'Supera una actividad de cada área'}</h2>
+            <p>Solo necesitas 1 de Matemáticas y 1 de Lengua en verde.</p>
+        `;
+        mission.appendChild(heading);
+        [['math', 'Matemáticas'], ['lengua', 'Lengua']].forEach(([subject, label]) => {
+            const group = document.createElement('div');
+            group.className = 'mission-group';
+            const title = document.createElement('h3');
+            title.textContent = `${subject === 'math' ? mathDone ? '✓' : '○' : languageDone ? '✓' : '○'} ${label}`;
+            group.appendChild(title);
+            missionActivityIds(chapter, subject, data).forEach(id => group.appendChild(missionEntry(subject, id, data)));
+            mission.appendChild(group);
         });
     }
 
     function openMystery() {
         const data = Storage.getData();
-        const unlock = Storage.getStoryUnlockStatus(data);
-        if (!unlock.canCreate) {
-            alert(storyProgressMessage(unlock));
-            showView('hub');
-            return;
-        }
-        const unlockedIds = Array.from({ length: unlock.unlockedStories }, (_, index) => index + 1);
-        state.mysteryStoryId = unlockedIds.find(id => Number(data.misterioProgreso[id]) < 20) || unlockedIds[0];
-        renderStorySelector();
+        const openChapters = Story.getChapters().filter(chapter => isChapterOpen(chapter.id, data));
+        state.mysteryStoryId = (
+            openChapters.find(chapter => getChapterProgress(data, chapter.id) < chapter.questions.length)
+            || openChapters[openChapters.length - 1]
+        ).id;
         renderMystery();
         showView('mystery', 'mystery');
     }
 
     function renderMystery() {
         const data = Storage.getData();
-        const progress = Number(data.misterioProgreso[state.mysteryStoryId]) || 0;
-        const story = MysteryGenerator.getMysteryStoriesList().find(item => item.id === state.mysteryStoryId);
-        const question = MysteryGenerator.generateByStrategy(state.mysteryStoryId, {
-            questionNumber: Math.min(20, progress + 1),
-            recovery2: data.modoRecuperacion,
-            masteredStrategies: Storage.getMasteredStrategies(data)
-        });
-        document.getElementById('mystery-title').textContent =
-            getMysteryNarrativeTitle(state.mysteryStoryId, story.title);
-        document.getElementById('mystery-step').textContent = `Pantalla ${Math.min(20, progress + 1)} de 20`;
-        document.getElementById('mystery-text').textContent = question.text;
-        document.getElementById('mystery-prompt').textContent = question.prompt;
+        const chapter = Story.getChapter(state.mysteryStoryId);
+        if (!isChapterOpen(chapter.id, data)) {
+            state.mysteryStoryId = 1;
+            return renderMystery();
+        }
+        const progress = getChapterProgress(data, chapter.id);
+        const question = chapter.questions[progress];
+        document.getElementById('mystery-title').textContent = chapter.title;
+        document.getElementById('mystery-subtitle').textContent = chapter.subtitle;
+        document.getElementById('mystery-step').textContent =
+            progress < chapter.questions.length
+                ? `Comprensión ${progress + 1} de ${chapter.questions.length}`
+                : `Capítulo completado · ${chapter.questions.length} de ${chapter.questions.length}`;
+        const fictionNotice = Story.getFictionNotice();
+        const notice = document.getElementById('mystery-fiction-note');
+        notice.hidden = chapter.id !== 1;
+        if (chapter.id === 1) {
+            document.getElementById('mystery-fiction-note-title').textContent = fictionNotice.title;
+            document.getElementById('mystery-fiction-note-text').textContent = fictionNotice.text;
+        }
+        const storyText = document.getElementById('mystery-text');
+        storyText.innerHTML = chapter.text.map(paragraph =>
+            paragraph.trim().startsWith('<blockquote>')
+                ? paragraph
+                : `<p>${paragraph}</p>`
+        ).join('');
+        const glossary = document.getElementById('mystery-glossary');
+        glossary.innerHTML = chapter.glossary.map(([word, meaning]) =>
+            `<p><strong>${word}:</strong> ${meaning}</p>`
+        ).join('');
         const feedback = document.getElementById('mystery-feedback');
         feedback.hidden = true;
+        feedback.className = 'feedback-box';
+        const prompt = document.getElementById('mystery-prompt');
         const container = document.getElementById('mystery-options');
         container.replaceChildren();
-        if (progress >= 20) {
+        renderChapterStatuses(data);
+        renderStorySelector();
+        renderChapterMission(chapter, data);
+
+        if (!question) {
+            prompt.textContent = 'Lectura completada';
             feedback.hidden = false;
             feedback.className = 'feedback-box success';
-            feedback.innerHTML = `
-                <h2>🏆 ¡Misterio resuelto!</h2>
-                <p>Has completado las 20 pantallas de esta aventura.</p>
-                <button id="btn-mystery-finished" class="action-btn primary" type="button">Volver al menú</button>
-            `;
-            document.getElementById('btn-mystery-finished').addEventListener('click', () => showView('hub'));
+            const missionComplete = isChapterMissionComplete(chapter, data);
+            const nextChapter = Story.getChapter(chapter.id + 1);
+            const hasNext = chapter.id < Story.getChapters().length;
+            feedback.innerHTML = hasNext
+                ? `<h2>🏆 ¡Capítulo completado!</h2><p>${missionComplete ? 'La misión está en verde. Ya puedes abrir el siguiente capítulo.' : 'Ahora completa la misión de Matemáticas y Lengua para abrir el siguiente capítulo.'}</p>${missionComplete ? '<button id="btn-story-next" class="action-btn primary" type="button">Abrir capítulo siguiente</button>' : ''}`
+                : '<h2>🎄 ¡Crónica completada!</h2><p>El dragón descansa junto a la academia. La aventura continuará tras las vacaciones de Navidad.</p><button id="btn-mystery-finished" class="action-btn primary" type="button">Volver al menú</button>';
+            const finished = document.getElementById('btn-mystery-finished');
+            if (finished) finished.addEventListener('click', () => showView('hub'));
+            const nextButton = document.getElementById('btn-story-next');
+            if (nextButton) nextButton.addEventListener('click', () => {
+                state.mysteryStoryId = nextChapter.id;
+                renderMystery();
+            });
             return;
         }
+
+        prompt.textContent = question.prompt;
         question.options.forEach(optionValue => {
             const button = document.createElement('button');
             button.type = 'button';
@@ -914,12 +1083,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const nextIndex = currentIndex + 1;
-        Storage.updateMysteryProgress(state.mysteryStoryId, nextIndex);
-        const completed = nextIndex >= 20;
-        feedback.innerHTML = completed
-            ? `<h2>🏆 ¡Misterio resuelto!</h2><p>${escapeHtml(question.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Volver al menú</button>`
-            : `<h2>✨ ¡Pista encontrada!</h2><p>${escapeHtml(question.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Siguiente pantalla</button>`;
-        document.getElementById('btn-mystery-continue').addEventListener('click', () => completed ? showView('hub') : renderMystery());
+        Storage.updateMysteryProgress(`baneza-${state.mysteryStoryId}`, nextIndex);
+        feedback.innerHTML = `<h2>✨ ¡Bien leído!</h2><p>${escapeHtml(question.paso2)}</p><button id="btn-mystery-continue" class="action-btn primary" type="button">Continuar</button>`;
+        document.getElementById('btn-mystery-continue').addEventListener('click', renderMystery);
     }
 
     function showNamePrompt() {
@@ -1095,10 +1261,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-subject]').forEach(button => {
         button.addEventListener('click', () => openSubject(button.dataset.subject));
     });
-    document.getElementById('btn-home').addEventListener('click', () => {
-        renderIdentity();
-        showView(Storage.getData().name ? 'hub' : 'name');
-    });
+    document.getElementById('btn-home').addEventListener('click', goHome);
+    document.getElementById('btn-header-home').addEventListener('click', goHome);
     elements.editName.addEventListener('click', showNamePrompt);
     document.getElementById('btn-category-back').addEventListener('click', () => showView('hub'));
     document.getElementById('btn-practice-back').addEventListener('click', () => {
